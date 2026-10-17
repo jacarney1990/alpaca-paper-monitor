@@ -1,72 +1,41 @@
+"""Read-only Alpaca PAPER dashboard. No order routes or trading SDK."""
 import hmac
 import os
+from datetime import datetime, timezone
 
 import requests
 from flask import Flask, jsonify, render_template_string, request
 
 app = Flask(__name__)
-PAPER_BASE = "https://paper-api.alpaca.markets"
-DATA_BASE = "https://data.alpaca.markets"
-WATCHLIST = {"NXE": ("at_or_below",8.50), "IONQ": ("at_or_below",40), "OKLO": ("range",30,32), "ASTS": ("range",52,55), "VRT": ("range",225,240), "RKLB": ("at_or_below",67), "VTI": ("range",365,381), "BOTZ": ("at_or_below",33), "GRID": ("at_or_below",170), "CRSP": ("hold",), "POET": ("review_below",7), "SLDP": ("hold",), "TLRY": ("hold",), "IGC": ("hold",), "SERV": ("hold",)}
+PAPER_BASE = 'https://paper-api.alpaca.markets'
+DATA_BASE = 'https://data.alpaca.markets'
+WATCHLIST = {
+    'NXE': ('at_or_below', 8.50), 'IONQ': ('at_or_below', 40.00),
+    'OKLO': ('range', 30.00, 32.00), 'ASTS': ('range', 52.00, 55.00),
+    'VRT': ('range', 225.00, 240.00), 'RKLB': ('at_or_below', 67.00),
+    'VTI': ('range', 365.00, 381.00), 'BOTZ': ('at_or_below', 33.00),
+    'GRID': ('at_or_below', 170.00), 'CRSP': ('hold',),
+    'POET': ('review_below', 7.00), 'SLDP': ('hold',),
+    'TLRY': ('hold',), 'IGC': ('hold',), 'SERV': ('hold',),
+}
 
-PAGE = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Alpaca Paper Monitor</title>
+PAGE = r'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Paper Monitor | Read Only</title>
 <style>
-:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}
-body{margin:0;background:#0b1220;color:#f1f5f9;padding:24px 16px}
-main{max-width:560px;margin:24px auto}h1{font-size:1.65rem;margin:0 0 8px}
-p{color:#a8b6ca;line-height:1.5}.panel{background:#172236;border:1px solid #31415a;border-radius:16px;padding:20px;margin-top:18px}
-.flags{display:flex;flex-wrap:wrap;gap:8px}.flag{font-size:.78rem;font-weight:700;border:1px solid #2f6f58;background:#133d31;color:#b7f7d4;padding:7px 10px;border-radius:999px}
-label{display:block;margin:0 0 8px;font-weight:600}input{box-sizing:border-box;width:100%;background:#0b1220;border:1px solid #64748b;border-radius:10px;color:white;padding:14px;font-size:1rem}
-button{background:#7dd3fc;color:#08101c;border:0;border-radius:10px;padding:13px 18px;font-weight:800;margin-top:12px;width:100%;font-size:1rem;cursor:pointer}
-button:disabled{opacity:.55;cursor:wait}.error{color:#fecaca}.good{color:#bbf7d0}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
-.metric{background:#0b1220;border-radius:10px;padding:12px;overflow-wrap:anywhere}.metric small{display:block;color:#94a3b8;margin-bottom:6px}.metric strong{font-size:1.12rem}
-.watch{margin-top:12px}.watchrow{border-top:1px solid #31415a;padding:12px 0;display:flex;justify-content:space-between;gap:12px}.watchrow small{color:#94a3b8;display:block}.watchrow strong{display:block;text-align:right}.watchrow em{display:block;font-style:normal;color:#bbf7d0;font-size:.82rem;text-align:right}.watchrow .quiet{color:#94a3b8}footer{font-size:.85rem;color:#94a3b8;margin-top:20px}
-</style></head><body><main>
-<h1>Alpaca Paper Monitor</h1><p>Private, read-only account check. No orders can be placed through this app.</p>
-<div class="flags"><span class="flag">PAPER ONLY</span><span class="flag">LIVE TRADING DISABLED</span><span class="flag">ORDERS DISABLED</span></div>
-<section class="panel"><form id="check-form" autocomplete="off">
-<label for="token">Dashboard access token</label>
-<input id="token" type="password" autocomplete="off" spellcheck="false" required placeholder="Enter your private token">
-<button id="check-button" type="submit">Check paper account</button></form>
-<p id="message" role="status" aria-live="polite">Your token is sent in a request header, never in the URL.</p>
-<div id="result" hidden><div class="metrics" id="metrics"></div></div></section>
-<section class="panel"><h2>Watchlist checks</h2><p>Prices are fetched when you press Check watchlist. This is not yet a scheduled alert service. Quotes may be delayed or unavailable.</p><form id="watch-form" autocomplete="off"><label for="watch-token">Dashboard access token</label><input id="watch-token" type="password" required autocomplete="off" placeholder="Enter your private token"><button id="watch-button" type="submit">Check watchlist</button></form><p id="watch-message" role="status"></p><div class="watch" id="watch-results"></div></section>
-<footer>Balances are from Alpaca's paper environment, not your Robinhood account. Do not share your access token or API credentials.</footer>
-</main><script>
-const form=document.getElementById('check-form');
-const button=document.getElementById('check-button');
-const message=document.getElementById('message');
-const result=document.getElementById('result');
-const metrics=document.getElementById('metrics');
-const money=(v,c)=>{const n=Number(v);return v===null||v===undefined||v===''||!Number.isFinite(n)?'Unavailable':new Intl.NumberFormat('en-US',{style:'currency',currency:c==='USD'?'USD':'USD'}).format(n)};
-form.addEventListener('submit',async(e)=>{
- e.preventDefault();const token=document.getElementById('token').value;
- button.disabled=true;message.className='';message.textContent='Checking paper account…';result.hidden=true;metrics.replaceChildren();
- try{
-  const response=await fetch('/account',{method:'GET',headers:{'X-Dashboard-Token':token},cache:'no-store',credentials:'omit'});
-  const data=await response.json();
-  if(!response.ok){message.className='error';message.textContent=response.status===401?'Access denied. Check your dashboard token.':(data.error||'Account check failed.');return;}
-  message.className='good';message.textContent='Connected to Alpaca paper account.';
-  const values=[['Account status',data.status||'Unavailable'],['Account ending',data.account_number_last4||'Unavailable'],['Portfolio value',money(data.portfolio_value,data.currency)],['Cash',money(data.cash,data.currency)],['Buying power',money(data.buying_power,data.currency)],['Currency',data.currency||'Unavailable']];
-  for(const [name,value] of values){const item=document.createElement('div');item.className='metric';const label=document.createElement('small');label.textContent=name;const text=document.createElement('strong');text.textContent=value;item.append(label,text);metrics.append(item)}
-  result.hidden=false;
- }catch(err){message.className='error';message.textContent='Network error. Try again after Render finishes waking up.'}
- finally{button.disabled=false;document.getElementById('token').value=''}
-});
-const wf=document.getElementById('watch-form');
-wf.addEventListener('submit',async(e)=>{
- e.preventDefault();const btn=document.getElementById('watch-button'),msg=document.getElementById('watch-message'),out=document.getElementById('watch-results');
- btn.disabled=true;out.replaceChildren();msg.textContent='Checking latest available quotes…';
- try{
-  const res=await fetch('/watchlist',{headers:{'X-Dashboard-Token':document.getElementById('watch-token').value},cache:'no-store',credentials:'omit'});
-  const data=await res.json();if(!res.ok){msg.textContent=data.error||'Request failed';return;}
-  msg.textContent='Quotes checked. Prices are informational, not execution signals.';
-  for(const item of data.items){const row=document.createElement('div');row.className='watchrow';const left=document.createElement('div'),right=document.createElement('div'),symbol=document.createElement('b'),note=document.createElement('small'),price=document.createElement('strong'),state=document.createElement('em');symbol.textContent=item.symbol;note.textContent=item.rule;price.textContent=item.price===null?'Unavailable':money(item.price,'USD');state.textContent=item.state+(item.timestamp?' · '+item.timestamp:'');if(item.state!=='IN RANGE'&&item.state!=='AT/BELOW')state.className='quiet';left.append(symbol,note);right.append(price,state);row.append(left,right);out.append(row)}
- }catch(err){msg.textContent='Network error; try again.'}finally{btn.disabled=false;document.getElementById('watch-token').value=''}
-});
-</script></body></html>"""
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}body{background:#0c1220;color:#e8eef8;max-width:860px;margin:auto;padding:16px}h1{font-size:1.6rem;margin-bottom:4px}h2{font-size:1.1rem;margin-top:25px}.muted{color:#a9b8cc}.notice{background:#17243a;border-left:4px solid #7bc7ff;padding:12px;border-radius:6px;margin:14px 0}.panel{background:#141f30;border:1px solid #304058;border-radius:12px;padding:15px;margin:12px 0}label{display:block;margin-bottom:6px}input{background:#0b1526;color:#fff;border:1px solid #66778f;border-radius:7px;padding:12px;box-sizing:border-box;width:100%;font-size:16px}button{background:#80d5f9;color:#07111b;border:0;border-radius:8px;padding:11px 14px;font-weight:700;margin:10px 8px 0 0;cursor:pointer}button:disabled{opacity:.55}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.tile{background:#0d1828;padding:11px;border-radius:8px}.tile strong{display:block;font-size:1.2rem;margin-top:5px}.stock{padding:13px 0;border-bottom:1px solid #34425a}.stock:last-child{border:0}.stockhead{display:flex;justify-content:space-between;gap:10px}.symbol{font-weight:800}.price{font-weight:800}.state{font-size:.83rem;font-weight:700;letter-spacing:.04em;margin:5px 0}.ok{color:#91e2af}.review{color:#fbd07e}.dim{color:#a9b8cc}.error{color:#ffb1b1;white-space:pre-wrap}.small{font-size:.85rem}code{overflow-wrap:anywhere}</style></head><body>
+<h1>Alpaca Paper Monitor</h1><div class="muted">Read-only backup / advisory dashboard</div>
+<div class="notice"><strong>NO TRADING.</strong> This dashboard reads an Alpaca <strong>simulated paper account</strong>, NOT Robinhood Agentic account 3994. Claude must independently verify Robinhood holdings, open orders and buying power before any real execution. Market-data quotes can be delayed or stale.</div>
+<div class="panel"><label for="token">Private dashboard access token</label><input id="token" type="password" autocomplete="off" placeholder="Enter your dashboard token"><div class="small muted">Token is kept only in this page's memory and sent as a request header. It is not saved in browser storage.</div><button id="accountBtn" onclick="loadAccount()">Check paper account</button><button id="watchBtn" onclick="loadWatchlist()">Check watchlist</button><div id="message" class="small" role="status" aria-live="polite"></div></div>
+<h2>Paper account</h2><div id="account" class="panel muted">Press “Check paper account.”</div>
+<h2>Watchlist review</h2><div id="watchlist" class="panel muted">Press “Check watchlist.” No automated orders or buy signals.</div>
+<script>
+const $=id=>document.getElementById(id);
+function safe(v){return String(v===null||v===undefined?'—':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function usd(v){if(v===null||v===undefined||v==='')return 'Unavailable';let n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}):'Unavailable';}
+function message(s,bad=false){$('message').className='small '+(bad?'error':'muted');$('message').textContent=s;}
+async function get(path){const token=$('token').value;if(!token)throw Error('Enter your private dashboard token first.');let r=await fetch(path,{headers:{'X-Dashboard-Token':token},cache:'no-store'});let data;try{data=await r.json()}catch{throw Error('Server returned an invalid response (HTTP '+r.status+').')}if(!r.ok)throw Error((data.error||'Request failed')+' (HTTP '+r.status+')');return data;}
+async function loadAccount(){let b=$('accountBtn');b.disabled=true;message('Checking paper account…');try{let a=await get('/account');$('account').innerHTML='<div class="grid">'+[['Status',a.status],['Paper portfolio',usd(a.portfolio_value)],['Paper cash',usd(a.cash)],['Paper buying power (may include simulated margin)',usd(a.buying_power)],['Account ending',a.account_number_last4],['Mode','PAPER ONLY']].map(x=>'<div class="tile">'+safe(x[0])+'<strong>'+safe(x[1])+'</strong></div>').join('')+'</div>';message('Paper account connected. No trades placed.')}catch(e){message(e.message,true)}finally{b.disabled=false}}
+async function loadWatchlist(){let b=$('watchBtn');b.disabled=true;message('Fetching Alpaca market data…');try{let d=await get('/watchlist');let warning=d.warning?'<p class="review">'+safe(d.warning)+'</p>':'';let meta='<p class="small muted">Source: '+safe(d.feed||'IEX')+' · Checked: '+safe(d.checked_at||'—')+' · Prices are informational, not executable quotes.</p>';let rows=d.items.map(i=>{let cls=i.state==='IN RANGE'||i.state==='AT/BELOW'||i.state==='REVIEW LEVEL'?'ok':i.state==='UNAVAILABLE'?'error':'review';return '<div class="stock"><div class="stockhead"><span class="symbol">'+safe(i.symbol)+'</span><span class="price">'+usd(i.price)+'</span></div><div class="state '+cls+'">'+safe(i.state)+'</div><div class="small muted">'+safe(i.rule)+' · '+safe(i.source||'No quote')+' · '+safe(i.timestamp||'Timestamp unavailable')+'</div>'+(i.note?'<div class="small">'+safe(i.note)+'</div>':'')+'</div>'}).join('');$('watchlist').innerHTML=warning+meta+rows;message(d.available_count+' of '+d.items.length+' prices available. No trades placed.',d.available_count===0)}catch(e){message(e.message,true)}finally{b.disabled=false}}
+</script></body></html>'''
 
 @app.after_request
 def secure_headers(response):
@@ -78,87 +47,165 @@ def secure_headers(response):
     response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
     return response
 
-@app.get('/')
-def home():
-    return render_template_string(PAGE)
-
-@app.get('/health')
-def health():
-    return jsonify({'status': 'ok', 'mode': 'paper', 'order_submission': False})
-
-@app.get('/account')
-def account():
-    expected = os.environ.get('DASHBOARD_ACCESS_TOKEN', '')
-    supplied = request.headers.get('X-Dashboard-Token', '')
-    if not expected or not supplied or not hmac.compare_digest(supplied, expected):
-        return jsonify({'error': 'unauthorized'}), 401
-    key = os.environ.get('ALPACA_PAPER_API_KEY', '')
-    secret = os.environ.get('ALPACA_PAPER_API_SECRET', '')
-    if not key or not secret:
-        return jsonify({'error': 'paper credentials not configured'}), 503
-    try:
-        response = requests.get(
-            PAPER_BASE + '/v2/account',
-            headers={'APCA-API-KEY-ID': key, 'APCA-API-SECRET-KEY': secret},
-            timeout=10,
-        )
-        response.raise_for_status()
-        data = response.json()
-        return jsonify({
-            'mode': 'PAPER ONLY', 'order_submission': False,
-            'status': data.get('status'), 'currency': data.get('currency'),
-            'account_number_last4': str(data.get('account_number') or '')[-4:],
-            'portfolio_value': data.get('portfolio_value'),
-            'cash': data.get('cash'),
-            'buying_power': data.get('buying_power'),
-        })
-    except (requests.RequestException, ValueError):
-        return jsonify({'error': 'paper account check failed; verify paper credentials in Render'}), 502
-
 
 def authorized():
     expected = os.environ.get('DASHBOARD_ACCESS_TOKEN', '')
     supplied = request.headers.get('X-Dashboard-Token', '')
     return bool(expected and supplied and hmac.compare_digest(supplied, expected))
 
+
+def api_headers():
+    key = os.environ.get('ALPACA_PAPER_API_KEY', '')
+    secret = os.environ.get('ALPACA_PAPER_API_SECRET', '')
+    if not key or not secret:
+        return None
+    return {'APCA-API-KEY-ID': key, 'APCA-API-SECRET-KEY': secret}
+
+
+def api_error(response, label):
+    # Do not echo upstream bodies; they may contain identifying data.
+    status = response.status_code
+    if status in (401, 403):
+        return f'{label}: Alpaca rejected credentials or market-data access (HTTP {status}).'
+    if status == 429:
+        return f'{label}: Alpaca rate limit reached (HTTP 429). Try later.'
+    return f'{label}: Alpaca returned HTTP {status}.'
+
+
+def request_json(url, headers, params=None):
+    response = requests.get(url, headers=headers, params=params, timeout=15)
+    if not response.ok:
+        raise ValueError(api_error(response, 'Request'))
+    try:
+        result = response.json()
+    except ValueError:
+        raise ValueError('Alpaca returned invalid JSON.') from None
+    if not isinstance(result, dict):
+        raise ValueError('Alpaca returned an unexpected response format.')
+    return result
+
+
+def numeric(value):
+    try:
+        result = float(value)
+        if result != result or result in (float('inf'), float('-inf')):
+            return None
+        return result
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def pick_price(snapshot):
+    """Prefer latest trade; use latest minute bar or daily bar with explicit source labels."""
+    if not isinstance(snapshot, dict):
+        return None, None, None
+    for field, key, label in (
+        ('latestTrade', 'p', 'Latest trade'),
+        ('minuteBar', 'c', 'Latest minute-bar close'),
+        ('dailyBar', 'c', 'Daily-bar close'),
+        ('prevDailyBar', 'c', 'Previous daily-bar close'),
+    ):
+        entry = snapshot.get(field)
+        if isinstance(entry, dict):
+            price = numeric(entry.get(key))
+            if price is not None and price > 0:
+                return price, entry.get('t'), label
+    return None, None, None
+
+
+def rule_for(symbol, price):
+    rule = WATCHLIST[symbol]
+    kind = rule[0]
+    if kind == 'hold':
+        notes = {
+            'CRSP': 'No add before Nov 8, 2026 zugo-cel data; reassess thesis and <= $52.50 afterward.',
+            'SLDP': 'Wait for meaningful commercialization milestone; then review <= $2.10.',
+            'TLRY': 'Oct 8 earnings occurred; new thesis review and buy boundary required.',
+            'IGC': 'No add before CALMA Phase 2 results.',
+            'SERV': 'No add.',
+        }
+        return 'REVIEW ONLY', 'Hold / catalyst restriction', notes.get(symbol, 'No automatic buy signal.')
+    if kind == 'range':
+        low, high = rule[1:]
+        state = 'UNAVAILABLE' if price is None else ('REVIEW LOW' if price < low else 'IN RANGE' if price <= high else 'ABOVE RANGE')
+        return state, f'Review range ${low:g}–${high:g}', 'Review only; no automatic trade.'
+    threshold = rule[1]
+    if kind == 'review_below':
+        state = 'UNAVAILABLE' if price is None else ('REVIEW LEVEL' if price <= threshold else 'ABOVE REVIEW LEVEL')
+        note = 'Stronger POET review <= $6.50; not an automatic buy.' if symbol == 'POET' else 'Review only.'
+        return state, f'Review at/below ${threshold:g}', note
+    state = 'UNAVAILABLE' if price is None else ('AT/BELOW' if price <= threshold else 'ABOVE')
+    note = 'Stronger review <= $36; assess financing/dilution.' if symbol == 'IONQ' else 'Review only; not an order.'
+    return state, f'Review at/below ${threshold:g}', note
+
+
+@app.get('/')
+def home():
+    return render_template_string(PAGE)
+
+
+@app.get('/health')
+def health():
+    return jsonify({'status': 'ok', 'mode': 'paper', 'order_submission': False})
+
+
+@app.get('/account')
+def account():
+    if not authorized():
+        return jsonify({'error': 'unauthorized'}), 401
+    headers = api_headers()
+    if headers is None:
+        return jsonify({'error': 'Paper credentials not configured in Render.'}), 503
+    try:
+        data = request_json(PAPER_BASE + '/v2/account', headers)
+    except (requests.RequestException, ValueError) as exc:
+        app.logger.warning('Paper account lookup failed: %s', type(exc).__name__)
+        return jsonify({'error': 'Paper account request failed; check credentials and Render logs.'}), 502
+    return jsonify({'mode': 'PAPER ONLY', 'order_submission': False,
+                    'status': data.get('status'), 'currency': data.get('currency'),
+                    'account_number_last4': str(data.get('account_number') or '')[-4:],
+                    'portfolio_value': data.get('portfolio_value'),
+                    'cash': data.get('cash'), 'buying_power': data.get('buying_power')})
+
+
 @app.get('/watchlist')
 def watchlist():
     if not authorized():
         return jsonify({'error': 'unauthorized'}), 401
-    key = os.environ.get('ALPACA_PAPER_API_KEY', '')
-    secret = os.environ.get('ALPACA_PAPER_API_SECRET', '')
-    if not key or not secret:
-        return jsonify({'error': 'paper credentials not configured'}), 503
+    headers = api_headers()
+    if headers is None:
+        return jsonify({'error': 'Paper credentials not configured in Render.'}), 503
+    checked_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     try:
-        response = requests.get(DATA_BASE + '/v2/stocks/snapshots', params={'symbols': ','.join(WATCHLIST), 'feed': 'iex'}, headers={'APCA-API-KEY-ID': key, 'APCA-API-SECRET-KEY': secret}, timeout=15)
-        response.raise_for_status()
-        snapshots = response.json().get('snapshots') or {}
-    except (requests.RequestException, ValueError):
-        return jsonify({'error': 'market data unavailable; check Alpaca market-data access'}), 502
+        data = request_json(DATA_BASE + '/v2/stocks/snapshots', headers,
+                            params={'symbols': ','.join(WATCHLIST), 'feed': 'iex'})
+    except requests.Timeout:
+        return jsonify({'error': 'Alpaca market-data request timed out.'}), 504
+    except requests.RequestException:
+        return jsonify({'error': 'Could not connect to Alpaca market data.'}), 502
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 502
+
+    snapshots = data.get('snapshots')
+    if not isinstance(snapshots, dict):
+        return jsonify({'error': 'Alpaca response did not contain a valid snapshots object.'}), 502
     items = []
-    for symbol, rule in WATCHLIST.items():
-        snap = snapshots.get(symbol) or {}
-        # Use only the latest trade price. Never silently substitute yesterday's close.
-        trade = snap.get('latestTrade') or {}
-        raw = trade.get('p')
-        try:
-            price = float(raw) if raw is not None else None
-        except (TypeError, ValueError):
-            price = None
-        if rule[0] == 'hold':
-            state, description = 'REVIEW ONLY', 'No automatic buy signal'
-        elif rule[0] == 'range':
-            low, high = rule[1:]
-            description = f'Review only: ${low:g}–${high:g}'
-            state = 'UNAVAILABLE' if price is None else ('IN RANGE' if low <= price <= high else 'OUTSIDE RANGE')
-        else:
-            threshold = rule[1]
-            description = f'Review only: at/below ${threshold:g}'
-            state = 'UNAVAILABLE' if price is None else ('AT/BELOW' if price <= threshold else 'ABOVE')
-        if price is None:
-            state = 'UNAVAILABLE'
-        items.append({'symbol': symbol, 'price': price, 'timestamp': trade.get('t'), 'rule': description, 'state': state})
-    return jsonify({'mode': 'paper', 'order_submission': False, 'items': items, 'note': 'Manual, informational watchlist check only; not a trade recommendation.'})
+    for symbol in WATCHLIST:
+        price, timestamp, source = pick_price(snapshots.get(symbol))
+        state, rule, note = rule_for(symbol, price)
+        items.append({'symbol': symbol, 'price': price, 'timestamp': timestamp,
+                      'source': source, 'state': state, 'rule': rule, 'note': note})
+    available_count = sum(item['price'] is not None for item in items)
+    warning = None
+    if available_count == 0:
+        warning = ('Alpaca returned no usable trade/bar prices for these symbols. '
+                   'IEX data may be unavailable for this request. No live quote is implied.')
+    elif available_count < len(items):
+        warning = f'{len(items) - available_count} symbols have no usable IEX trade/bar price.'
+    return jsonify({'mode': 'PAPER ONLY', 'order_submission': False, 'feed': 'IEX',
+                    'checked_at': checked_at, 'available_count': available_count,
+                    'warning': warning, 'items': items})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', '10000')))
