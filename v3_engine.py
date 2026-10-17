@@ -30,6 +30,51 @@ WATCH = ('NXE','IONQ','OKLO','ASTS','VRT','RKLB','CRSP','POET','SERV','SLDP','VT
 MAX_REQUEST_BYTES = 2_500_000
 
 
+class MassiveDataError(ValueError):
+    """A non-sensitive, actionable error label for rejected daily-bar data."""
+
+
+def massive_response_hint(status, payload):
+    """Derive categorical hints only; never echo provider text or secrets."""
+    msg = str(payload.get('message') or payload.get('error') or '').lower()
+    if any(word in msg for word in ('api key', 'api_key', 'authentication', 'invalid key')):
+        return 'CHECK_API_KEY'
+    if any(word in msg for word in ('plan', 'entitle', 'subscri', 'timeframe', 'historical access', 'agreement')):
+        return 'CHECK_STOCKS_PLAN_AND_DATA_WINDOW'
+    if 'rate' in msg and ('limit' in msg or 'exceed' in msg):
+        return 'RATE_LIMIT'
+    if status in ('NOT_AUTHORIZED', 'UNAUTHORIZED', 'FORBIDDEN'):
+        return 'CHECK_STOCKS_PLAN_AND_DATA_WINDOW'
+    return 'CHECK_PROVIDER_RESPONSE'
+
+
+def safe_massive_status(payload):
+    raw = payload.get('status')
+    text = str(raw) if isinstance(raw, str) else 'MISSING'
+    # A fixed vocabulary ensures untrusted response values cannot enter public logs.
+    known = {'OK', 'NOT_AUTHORIZED', 'UNAUTHORIZED', 'FORBIDDEN',
+             'ERROR', 'NOT_FOUND', 'DELAYED', 'RATE_LIMITED', 'NO_DATA'}
+    return text if text in known else 'UNRECOGNIZED'
+
+
+def market_error_label(exc):
+    """Explain common failures without logging raw HTTP bodies or URLs."""
+    if isinstance(exc, MassiveDataError):
+        return str(exc)
+    if isinstance(exc, HTTPError):
+        hint = {401: 'INVALID_OR_INACTIVE_KEY', 403: 'PLAN_ACCESS_OR_DATA_WINDOW',
+                429: 'RATE_LIMIT', 500: 'PROVIDER_ERROR', 502: 'PROVIDER_ERROR',
+                503: 'PROVIDER_TEMPORARY_OUTAGE', 504: 'PROVIDER_TEMPORARY_OUTAGE'}
+        return f'HTTP_{exc.code}_{hint.get(exc.code, "REQUEST_FAILED")}'
+    if isinstance(exc, json.JSONDecodeError):
+        return 'NON_JSON_API_RESPONSE'
+    if isinstance(exc, (URLError, TimeoutError)):
+        return 'NETWORK_OR_TIMEOUT'
+    if isinstance(exc, ValueError):
+        return 'BAD_API_RESPONSE_VALUE'
+    return type(exc).__name__
+
+
 def decimal(value):
     return risk_policy.amount(value)
 
@@ -97,22 +142,40 @@ def bars(symbol, today, api_key):
     start = (today - timedelta(days=65)).isoformat()
     url = (f'{MASSIVE}/v2/aggs/ticker/{quote(symbol)}/range/1/day/{start}/{today.isoformat()}?'
            + urlencode({'adjusted': 'true', 'sort': 'asc', 'limit': '80'}))
-    data = get_json(url, {'Authorization': 'Bearer ' + api_key})
-    if data.get('status') != 'OK':
-        raise ValueError('No successful market response')
+    try:
+        data = get_json(url, {'Authorization': 'Bearer ' + api_key})
+    except json.JSONDecodeError as exc:
+        raise MassiveDataError('NON_JSON_API_RESPONSE') from exc
+    if not isinstance(data, dict):
+        raise MassiveDataError('NON_OBJECT_API_RESPONSE')
+    status = safe_massive_status(data)
+    if status != 'OK':
+        hint = massive_response_hint(status, data)
+        raise MassiveDataError(f'MASSIVE_STATUS_{status}_{hint}')
+    found = data.get('results', [])
+    if not isinstance(found, list):
+        raise MassiveDataError('INVALID_RESULTS_ARRAY')
+    if not found:
+        return []  # No trading-day data, or empty timeframe; not a parse failure.
     out = []
-    for entry in data.get('results', []):
+    for i, entry in enumerate(found):
+        if not isinstance(entry, dict):
+            raise MassiveDataError('INVALID_BAR_OBJECT')
         ts = entry.get('t')
-        if not isinstance(ts, int):
-            continue
-        date = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).date().isoformat()
-        price = decimal(entry.get('c'))
-        opening = decimal(entry.get('o'))
+        if isinstance(ts, bool) or not isinstance(ts, int):
+            raise MassiveDataError('INVALID_BAR_TIMESTAMP')
+        try:
+            day = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).date().isoformat()
+            price = decimal(entry.get('c'))
+            opening = decimal(entry.get('o'))
+        except (ValueError, OverflowError, OSError) as exc:
+            raise MassiveDataError('INVALID_BAR_OPEN_OR_CLOSE') from exc
         if opening <= 0 or price <= 0:
-            raise ValueError('Nonpositive price')
-        out.append({'date': date, 'close': str(price), 'open': str(opening)})
-    if sorted(x['date'] for x in out) != list(dict.fromkeys(sorted(x['date'] for x in out))):
-        raise ValueError('Duplicate market dates')
+            raise MassiveDataError('NONPOSITIVE_BAR_PRICE')
+        out.append({'date': day, 'close': str(price), 'open': str(opening)})
+    dates = [x['date'] for x in out]
+    if len(set(dates)) != len(dates):
+        raise MassiveDataError('DUPLICATE_MARKET_DATES')
     return sorted(out, key=lambda b: b['date'])
 
 
@@ -419,8 +482,12 @@ def market_data(now, state, api_key):
                 t['next_open'] = series[-1]['open']
             results[sym] = t
         except (HTTPError, URLError, ValueError, TimeoutError, KeyError) as exc:
-            errors.append(f'{sym}: '+(f'HTTP {exc.code}' if isinstance(exc, HTTPError)
-                                        else type(exc).__name__))
+            label = market_error_label(exc)
+            errors.append(f'{sym}: {label}')
+            print(f'Massive daily bars {sym}: {label}')
+    if not any(r.get('status') == 'READY' for r in results.values()):
+        # Retry the same symbol set after an outage; do not rotate past failed leads.
+        return results, errors, rotation
     return results, errors, (rotation + 3) % len(WATCH)
 
 
@@ -486,11 +553,17 @@ def main():
     market, errors, next_rotation = market_data(now, state, key)
     state['rotation'] = next_rotation
     active = {s:t for s,t in market.items() if t.get('status') == 'READY'}
+    if not active:
+        print('::warning::No usable Massive daily bars. Virtual trading is suspended until market data validates.')
     # This is ONLY a virtual simulator; no broker POST occurs anywhere in this file.
-    if is_true('V3_SIMULATE', default=False):
+    if is_true('V3_SIMULATE', default=False) and active:
         state, events = virtual_step(state, active, audit, now)
     else:
-        events = [{'action':'SIMULATION_OFF','reason':'Enable V3_SIMULATE after reviewing reports'}]
+        if not active:
+            events = [{'action':'SIMULATION_BLOCKED_NO_VALID_MARKET_DATA',
+                       'reason':'Massive daily bars failed or are too old; no virtual trades'}]
+        else:
+            events = [{'action':'SIMULATION_OFF','reason':'Enable V3_SIMULATE after reviewing reports'}]
         state['virtual_equity'] = state.get('virtual_equity','500.00')
     benchmark = benchmark_mark(state, market)
     state['history'] = (state.get('history', []) + [
@@ -499,7 +572,10 @@ def main():
     report = {'as_of_utc':now.isoformat(),'environment':'PAPER_READ_ONLY_AND_VIRTUAL_ONLY',
               'alpaca_paper':broker,'alpaca_paper_warnings':paper_warnings(broker),
               'ai_audit':audit,'daily_market':market,
-              'market_errors':errors,'virtual_state':state,'events':events,
+              'market_errors':errors,
+              'market_data_status': ('ready' if active and not errors else
+                                     'partial' if active else 'unavailable'),
+              'virtual_state':state,'events':events,
               'benchmark':benchmark,
               'real_broker_orders_submitted':0}
     with open('v3-report.json','w',encoding='utf-8') as f:
