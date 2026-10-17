@@ -149,14 +149,26 @@ def bars(symbol, today, api_key):
     if not isinstance(data, dict):
         raise MassiveDataError('NON_OBJECT_API_RESPONSE')
     status = safe_massive_status(data)
-    if status != 'OK':
+    # Massive may return end-of-day historical bars with status=DELAYED.
+    # Accept the *data*, not the status, after validating every bar below.
+    # All other non-OK statuses still fail closed.
+    if status not in ('OK', 'DELAYED'):
         hint = massive_response_hint(status, data)
         raise MassiveDataError(f'MASSIVE_STATUS_{status}_{hint}')
-    found = data.get('results', [])
+    # Refuse data for a different symbol, even if the provider marks it OK/DELAYED.
+    ticker = data.get('ticker')
+    if ticker is not None and ticker != symbol:
+        raise MassiveDataError('RESPONSE_TICKER_MISMATCH')
+    found = data.get('results')
+    if status == 'DELAYED' and (not isinstance(found, list) or not found):
+        # "DELAYED" by itself is not proof that price data is available.
+        raise MassiveDataError('MASSIVE_DELAYED_WITHOUT_BARS')
+    if found is None and status == 'OK':
+        return []
     if not isinstance(found, list):
         raise MassiveDataError('INVALID_RESULTS_ARRAY')
     if not found:
-        return []  # No trading-day data, or empty timeframe; not a parse failure.
+        return []
     out = []
     for i, entry in enumerate(found):
         if not isinstance(entry, dict):
@@ -172,11 +184,20 @@ def bars(symbol, today, api_key):
             raise MassiveDataError('INVALID_BAR_OPEN_OR_CLOSE') from exc
         if opening <= 0 or price <= 0:
             raise MassiveDataError('NONPOSITIVE_BAR_PRICE')
+        # Reject bars outside the interval we actually requested. A status of
+        # DELAYED never overrides the temporal or price-integrity checks.
+        if day < start or day > today.isoformat():
+            raise MassiveDataError('BAR_OUTSIDE_REQUESTED_DATE_RANGE')
         out.append({'date': day, 'close': str(price), 'open': str(opening)})
     dates = [x['date'] for x in out]
     if len(set(dates)) != len(dates):
         raise MassiveDataError('DUPLICATE_MARKET_DATES')
-    return sorted(out, key=lambda b: b['date'])
+    out = sorted(out, key=lambda b: b['date'])
+    if status == 'DELAYED':
+        # Logs never include the provider's raw body or API token.
+        print(f'Massive daily bars {symbol}: DELAYED_HISTORY_VALIDATED '
+              f'({len(out)} bars; latest {out[-1]["date"]})')
+    return out
 
 
 def technical(series, as_of):
