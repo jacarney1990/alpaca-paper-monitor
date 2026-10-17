@@ -1,0 +1,53 @@
+name: Investment V3.2 Operations Watchdog (read only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      send_test_notification:
+        description: 'Email one test message to my configured Resend recipient'
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    # Tue-Sat 01:37 UTC checks the previous Mon-Fri 22:23 UTC V3 schedule.
+    # GitHub Actions schedules are best-effort, not guaranteed execution.
+    - cron: '37 1 * * 2-6'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: investment-v32-ops
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Operations safety tests
+        run: python -m unittest discover -s tests -p 'test_ops_supervisor.py' -v
+      - name: Verify scheduled V3 and alert on problems
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          ALERT_EMAIL_FROM: ${{ vars.ALERT_EMAIL_FROM }}
+          OPS_EXPECT_SIMULATION: ${{ vars.V3_SIMULATE == 'true' }}
+          OPS_TEST_EMAIL: ${{ github.event_name == 'workflow_dispatch' && inputs.send_test_notification }}
+        run: python ops_supervisor.py
+      - name: Save operations audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: investment-ops-${{ github.run_id }}
+          path: ops-health.json
+          if-no-files-found: warn
+          retention-days: 30
