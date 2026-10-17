@@ -186,9 +186,18 @@ def watchlist():
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 502
 
-    snapshots = data.get('snapshots')
-    if not isinstance(snapshots, dict):
-        return jsonify({'error': 'Alpaca response did not contain a valid snapshots object.'}), 502
+    # Alpaca's GET /v2/stocks/snapshots commonly returns a top-level
+    # mapping: {"AAPL": {"latestTrade": ...}, ...}, not {"snapshots": ...}.
+    # Accept both representations without interpreting API error payloads as quotes.
+    if isinstance(data.get('snapshots'), dict):
+        snapshots = data['snapshots']
+    elif any(symbol in data for symbol in WATCHLIST):
+        snapshots = data
+    elif not data:
+        snapshots = {}
+    else:
+        app.logger.warning('Unexpected Alpaca snapshots JSON keys: %s', list(data)[:10])
+        return jsonify({'error': 'Alpaca returned an unexpected market-data format. Check Render logs for response keys (no credentials logged).'}), 502
     items = []
     for symbol in WATCHLIST:
         price, timestamp, source = pick_price(snapshots.get(symbol))
