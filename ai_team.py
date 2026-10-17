@@ -38,6 +38,10 @@ ROLES = {
 }
 
 
+class ProviderReviewError(RuntimeError):
+    """Sanitized provider diagnostic. Never contains keys or generated content."""
+
+
 def json_http(url, payload=None, headers=None, timeout=35):
     raw = json.dumps(payload).encode('utf-8') if payload is not None else None
     req = Request(url, method='POST' if raw is not None else 'GET', data=raw,
@@ -46,7 +50,10 @@ def json_http(url, payload=None, headers=None, timeout=35):
                            **({'Content-Type': 'application/json'} if raw is not None else {}),
                            **(headers or {})})
     with urlopen(req, timeout=timeout) as resp:
-        return json.load(resp)
+        try:
+            return json.load(resp)
+        except json.JSONDecodeError as exc:
+            raise ProviderReviewError('HTTP response was not JSON') from exc
 
 
 def configured_models():
@@ -54,12 +61,37 @@ def configured_models():
 
 
 def text_from_openai(response):
+    chunks = []
     for item in response.get('output', []):
         if item.get('type') == 'message':
             for part in item.get('content', []):
-                if part.get('type') == 'output_text':
-                    return part.get('text', '')
-    return response.get('output_text', '')
+                if part.get('type') == 'output_text' and isinstance(part.get('text'), str):
+                    chunks.append(part['text'])
+    return ''.join(chunks) or response.get('output_text', '')
+
+
+def parse_provider_reply(name, response, raw):
+    """Reject missing/truncated/malformed JSON with safe metadata-only diagnostics."""
+    if name == 'OpenAI':
+        status = response.get('status', 'unknown')
+        info = response.get('incomplete_details') or {}
+        reason = info.get('reason', 'unknown') if isinstance(info, dict) else 'unknown'
+        state = f'status={str(status)[:35]}, reason={str(reason)[:35]}'
+    elif name == 'Gemini':
+        candidates = response.get('candidates') or []
+        finish = candidates[0].get('finishReason', 'unknown') if candidates else 'no_candidate'
+        state = f'finishReason={str(finish)[:35]}'
+    else:
+        state = 'no_completion_metadata'
+    if not isinstance(raw, str) or not raw.strip():
+        raise ProviderReviewError(f'{name} returned no JSON text ({state})')
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ProviderReviewError(f'{name} returned malformed JSON ({state}; chars={len(raw)})') from exc
+    if not isinstance(result, dict):
+        raise ProviderReviewError(f'{name} JSON was not an object ({state})')
+    return result
 
 
 def ask_provider(name, prompt):
@@ -77,36 +109,48 @@ def ask_provider(name, prompt):
         'If evidence is thin choose uncertain. Never give trade instructions. '
         + ROLES[name]
     )
-    if name == 'OpenAI':
-        response = json_http('https://api.openai.com/v1/responses', headers={
-            'Authorization': 'Bearer ' + api_key,
-        }, payload={
-            'model': model, 'instructions': instruction, 'input': prompt,
-            'max_output_tokens': 450,
-            'text': {'format': {'type': 'json_schema', 'name': 'investment_review',
-                                'strict': True, 'schema': SCHEMA}},
-        })
-        raw = text_from_openai(response)
-    elif name == 'Claude':
-        response = json_http('https://api.anthropic.com/v1/messages', headers={
-            'x-api-key': api_key, 'anthropic-version': '2023-06-01',
-        }, payload={
-            'model': model, 'max_tokens': 450, 'system': instruction,
-            'messages': [{'role': 'user', 'content': prompt}],
-        })
-        raw = '\n'.join(x.get('text', '') for x in response.get('content', []) if x.get('type') == 'text')
-    elif name == 'Gemini':
-        endpoint = f'https://generativelanguage.googleapis.com/v1beta/models/{quote(model, safe=".-")}:generateContent'
-        response = json_http(endpoint, headers={'x-goog-api-key': api_key}, payload={
-            'systemInstruction': {'parts': [{'text': instruction}]},
-            'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
-            'generationConfig': {'responseMimeType': 'application/json', 'maxOutputTokens': 450},
-        })
-        raw = '\n'.join(part.get('text', '') for c in response.get('candidates', [])
-                        for part in c.get('content', {}).get('parts', []))
-    else:
-        raise ValueError('Unknown model')
-    return json.loads(raw)
+    # The old 450-token limit often used the entire reasoning/output budget,
+    # leaving empty or truncated JSON. Retry a malformed/empty model result ONCE.
+    last_error = None
+    for token_limit in (2000, 3500):
+        if name == 'OpenAI':
+            response = json_http('https://api.openai.com/v1/responses', headers={
+                'Authorization': 'Bearer ' + api_key,
+            }, payload={
+                'model': model, 'instructions': instruction, 'input': prompt,
+                'max_output_tokens': token_limit,
+                'text': {'format': {'type': 'json_schema', 'name': 'investment_review',
+                                    'strict': True, 'schema': SCHEMA}},
+            })
+            raw = text_from_openai(response)
+        elif name == 'Claude':
+            response = json_http('https://api.anthropic.com/v1/messages', headers={
+                'x-api-key': api_key, 'anthropic-version': '2023-06-01',
+            }, payload={
+                'model': model, 'max_tokens': token_limit, 'system': instruction,
+                'messages': [{'role': 'user', 'content': prompt}],
+            })
+            raw = '\n'.join(x.get('text', '') for x in response.get('content', []) if x.get('type') == 'text')
+        elif name == 'Gemini':
+            endpoint = f'https://generativelanguage.googleapis.com/v1beta/models/{quote(model, safe=".-")}:generateContent'
+            response = json_http(endpoint, headers={'x-goog-api-key': api_key}, payload={
+                'systemInstruction': {'parts': [{'text': instruction}]},
+                'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
+                'generationConfig': {
+                    'responseMimeType': 'application/json',
+                    'responseJsonSchema': SCHEMA,
+                    'maxOutputTokens': token_limit,
+                },
+            })
+            raw = '\n'.join(part.get('text', '') for c in response.get('candidates', [])
+                            for part in c.get('content', {}).get('parts', []) if part.get('text'))
+        else:
+            raise ValueError('Unknown model')
+        try:
+            return parse_provider_reply(name, response, raw)
+        except ProviderReviewError as exc:
+            last_error = exc
+    raise last_error
 
 
 def validate_review(obj, allowed_ids):
@@ -215,6 +259,10 @@ def agent_report(symbol, sources, now):
             name = futures[f]
             try:
                 reviews[name] = validate_review(f.result(), {s['id'] for s in samples})
+            except ProviderReviewError as exc:
+                print(f'{name} review unavailable for {symbol}: {exc}')
+            except HTTPError as exc:
+                print(f'{name} review unavailable for {symbol}: HTTP {exc.code}')
             except Exception as exc:
                 print(f'{name} review unavailable for {symbol}: {type(exc).__name__}')
     return {'symbol': symbol, 'sources': samples, 'snapshot': market,
@@ -263,10 +311,15 @@ def main():
     grouped = {}
     for s in leads:
         grouped.setdefault(s['symbol'], []).append(s)
-    # Only new *source IDs* trigger an analysis; bound AI costs and load.
+    # Manual recheck of already-processed sources, only when explicitly requested.
+    force = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and \
+        os.environ.get('FORCE_AI_RESEARCH', '').lower() == 'true'
+    if force:
+        print('Manual recheck requested: already-seen leads may be analyzed again (extra API charges).')
+    # Only new *source IDs* trigger scheduled analysis; bound AI costs and load.
     fresh = []
     for symbol, items in grouped.items():
-        new = [s for s in items if s['id'] not in seen]
+        new = items if force else [s for s in items if s['id'] not in seen]
         if new:
             fresh.append((symbol, items, new))
     fresh.sort(key=lambda x: (not any(s['kind'].startswith('OFFICIAL SEC') for s in x[2]), -len(x[2]), x[0]))
@@ -280,13 +333,23 @@ def main():
     with open('ai-team-report.json', 'w', encoding='utf-8') as handle:
         json.dump({'as_of': now.isoformat(), 'source_health': health, 'reports': reports,
                    'execution': 'DISABLED', 'portfolio_connected': False}, handle, indent=2)
-    subject = 'AI research (review only): ' + ', '.join(x['symbol'] for x in reports)
-    # Send BEFORE state update, so a failed delivery can retry on next scheduled run.
-    email = base.send_email(subject, format_report(reports, now))
-    print(f'Research alert sent for {len(reports)} tickers; provider success {sum(len(r["reviews"]) for r in reports)}; email id present {bool(email)}')
-    for _, _, new in selected:
-        seen.update(s['id'] for s in new)
-    save_ai_state(repo, issue_no, {'processed': sorted(seen)[-1200:], 'last_sent': now.isoformat()})
+    completed = [r for r in reports if len(r['reviews']) >= 2]
+    incomplete = [r['symbol'] for r in reports if len(r['reviews']) < 2]
+    print(f'Independent AI reviews: {sum(len(r["reviews"]) for r in reports)} valid responses '
+          f'across {len(reports)} symbols; {len(completed)} symbols have at least 2 reviewers')
+    if completed:
+        # Partial results may be emailed but never presented as verified consensus.
+        subject = 'AI research (review only): ' + ', '.join(r['symbol'] for r in reports)
+        email = base.send_email(subject, format_report(reports, now))
+        print(f'Research email sent; id present {bool(email)}')
+        # Only successful two-model reviews are marked as processed.
+        for symbol, _, new in selected:
+            if any(r['symbol'] == symbol for r in completed):
+                seen.update(s['id'] for s in new)
+        save_ai_state(repo, issue_no, {'processed': sorted(seen)[-1200:], 'last_sent': now.isoformat()})
+    if incomplete:
+        print('Incomplete two-model reviews (not marked processed): ' + ', '.join(incomplete))
+        raise RuntimeError('At least one ticker lacks two validated AI reviews; see sanitized provider errors above')
 
 
 if __name__ == '__main__':
