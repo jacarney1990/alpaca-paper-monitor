@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -42,18 +43,50 @@ class ProviderReviewError(RuntimeError):
     """Sanitized provider diagnostic. Never contains keys or generated content."""
 
 
-def json_http(url, payload=None, headers=None, timeout=35):
+RETRYABLE_HTTP_CODES = {429, 500, 502, 503, 504}
+
+
+def json_http(url, payload=None, headers=None, timeout=35, retries=2):
+    """Bounded retries for transient data/AI HTTP outages; never retries authorization errors.
+
+    Keeps error diagnostics limited to status codes and attempt counts, avoiding secrets
+    and response bodies. A permanently failing provider is left incomplete for later runs.
+    """
     raw = json.dumps(payload).encode('utf-8') if payload is not None else None
     req = Request(url, method='POST' if raw is not None else 'GET', data=raw,
-                  headers={'User-Agent': 'InvestmentIntelligence-AITeam/2.0',
+                  headers={'User-Agent': 'InvestmentIntelligence-AITeam/2.1',
                            'Accept': 'application/json',
                            **({'Content-Type': 'application/json'} if raw is not None else {}),
                            **(headers or {})})
-    with urlopen(req, timeout=timeout) as resp:
+    for attempt in range(retries + 1):
         try:
-            return json.load(resp)
-        except json.JSONDecodeError as exc:
-            raise ProviderReviewError('HTTP response was not JSON') from exc
+            with urlopen(req, timeout=timeout) as resp:
+                try:
+                    return json.load(resp)
+                except json.JSONDecodeError as exc:
+                    # A bad 200 response should not trigger a flood of requests.
+                    raise ProviderReviewError('HTTP response was not JSON') from exc
+        except HTTPError as exc:
+            if exc.code not in RETRYABLE_HTTP_CODES or attempt >= retries:
+                raise
+            # Honor short provider Retry-After values. Long windows are deferred
+            # to the next scheduled run rather than blocking a GitHub job.
+            retry_after = exc.headers.get('Retry-After') if exc.headers else None
+            try:
+                wait = float(retry_after) if retry_after is not None else None
+            except (ValueError, TypeError, OverflowError):
+                wait = None
+            if wait is None or not (0 <= wait <= 30):
+                wait = (3, 8)[min(attempt, 1)]
+            print(f'Transient API HTTP {exc.code}; retry {attempt + 1}/{retries} in {wait:g}s')
+            time.sleep(wait)
+        except (URLError, TimeoutError):
+            if attempt >= retries:
+                raise
+            wait = (3, 8)[min(attempt, 1)]
+            print(f'Transient network error; retry {attempt + 1}/{retries} in {wait}s')
+            time.sleep(wait)
+    raise RuntimeError('Unreachable retry state')
 
 
 def configured_models():
