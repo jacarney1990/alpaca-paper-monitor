@@ -268,7 +268,12 @@ def ai_audit(repo, token, now):
                 continue
             return {'status': 'recent', 'as_of': audit.get('as_of'),
                     'by_symbol': {r['symbol']: {'consensus': r.get('consensus'),
-                                              'reviewer_count': len(r.get('reviews') or {})}
+                                              'reviewer_count': len(r.get('reviews') or {}),
+                                              'reviewer_classifications': {name: {
+                                                  'classification': v.get('classification'),
+                                                  'self_rated_confidence': v.get('confidence')}
+                                                  for name,v in (r.get('reviews') or {}).items()
+                                                  if isinstance(v, dict)}}
                                   for r in audit['reports'] if r.get('symbol') in WATCH}}
         return {'status': 'unavailable', 'reason': 'No recent successful AI Team report artifact'}
     except (HTTPError, URLError, ValueError, KeyError, OSError, zipfile.BadZipFile) as exc:
@@ -288,6 +293,128 @@ def safe_ai_for_virtual_buy(audit, symbol):
     if consensus.get('classification') not in {'opportunity', 'watch'}:
         return False, 'AI consensus is not favorable/neutral'
     return True, 'AI opinions checked; source claims still unverified'
+
+
+def prioritize_research_candidates(audit, state):
+    """Use AI Team's ACTUAL recent research symbols, never independent rotation.
+
+    This is candidate alignment, NOT a buy signal. Rank eligible consensus first
+    to spend limited market-data requests efficiently, then uncertain/risk cases.
+    """
+    if audit.get('status') == 'recent' and isinstance(audit.get('by_symbol'), dict):
+        reports = audit['by_symbol']
+        symbols = [s for s in reports if s in WATCH and s not in ('VTI', 'BOTZ', 'GRID')]
+        if symbols:
+            def priority(sym):
+                r = reports[sym] if isinstance(reports[sym], dict) else {}
+                c = r.get('consensus') or {}
+                eligible = (r.get('reviewer_count', 0) >= 2 and
+                            c.get('status') == 'REVIEW_REQUIRED' and
+                            c.get('classification') in ('opportunity', 'watch'))
+                return (0 if eligible else 1, sym)
+            return sorted(symbols, key=priority)[:3], 'RECENT_AI_AUDIT'
+    rotation = int(state.get('rotation', 0)) % len(WATCH)
+    return [WATCH[(rotation+i) % len(WATCH)] for i in range(3)], 'WATCHLIST_FALLBACK_NO_AI_CANDIDATES'
+
+
+def review_quality(audit, symbol):
+    """AI agreement is metadata, not independent verification of any claim."""
+    if audit.get('status') != 'recent':
+        return {'status': 'AUDIT_UNAVAILABLE', 'reviewer_count': 0,
+                'evidence_verification': 'NOT_VERIFIED'}
+    r = (audit.get('by_symbol') or {}).get(symbol) or {}
+    c = r.get('consensus') or {}
+    reviewers = r.get('reviewer_count', 0)
+    if reviewers < 2:
+        grade = 'INSUFFICIENT_REVIEWERS'
+    elif c.get('status') == 'REVIEW_REQUIRED':
+        grade = 'MODEL_AGREEMENT_REVIEW_ONLY'
+    elif c.get('status') == 'NO_CONSENSUS':
+        grade = 'NO_CONSENSUS'
+    else:
+        grade = 'NO_QUALIFYING_AGREEMENT'
+    return {'status': grade, 'reviewer_count': reviewers,
+            'classification': c.get('classification', 'unknown'),
+            'evidence_level': c.get('evidence_level', 'not_reported'),
+            'evidence_verification': 'NOT_VERIFIED',
+            'reviewer_classifications': r.get('reviewer_classifications', {})}
+
+
+def explain_virtual_decisions(market, audit, state, simulation_enabled, events=None, now=None):
+    """Deterministic explanations only; does NOT enqueue or submit orders."""
+    if not isinstance(market, dict):
+        return {}
+    recorded = {(e.get('symbol'), e.get('action')) for e in (events or []) if isinstance(e, dict)}
+    decisions = {}
+    current = equity(state, {s: t for s,t in market.items() if t.get('status') == 'READY'})
+    for sym,t in market.items():
+        if sym in ('VTI', 'BOTZ', 'GRID'):
+            continue
+        quality = review_quality(audit, sym)
+        reasons = []
+        verdict = 'WATCH'
+        if sym in state.get('positions', {}):
+            verdict = 'HOLD_POSITION'
+            if t.get('status') != 'READY':
+                reasons.append('HELD_POSITION_PRICE_UNAVAILABLE')
+            elif t.get('bearish'):
+                reasons.append('HELD_POSITION_BEARISH_REVIEW_EXIT_SIGNAL')
+            else:
+                reasons.append('HELD_POSITION_MONITOR')
+        elif state.get('pending') and state['pending'].get('symbol') == sym:
+            verdict = 'PENDING_VIRTUAL_ORDER'
+            reasons.append('WAIT_FOR_LATER_MARKET_BAR')
+        else:
+            if t.get('status') != 'READY':
+                reasons.append('PRICE_HISTORY_UNAVAILABLE')
+            else:
+                if not t.get('bullish', False):
+                    reasons.append('NOT_BULLISH_5_20_DAY_TREND')
+                try:
+                    estimated = decimal(t['last_close']) * Decimal('1.005')
+                    if estimated > CAPITAL * risk_policy.MAX_NEW_POSITION_FRACTION:
+                        reasons.append('WHOLE_SHARE_EXCEEDS_5_PERCENT_LIMIT')
+                    if current is None:
+                        reasons.append('HELD_POSITION_PRICE_UNAVAILABLE')
+                    else:
+                        account = {'equity': str(current), 'day_start_equity': state['day_start_equity'],
+                                   'peak_equity': state['peak_equity'], 'available_cash': state['cash'],
+                                   'managed_allocation': '500', 'current_position_value': '0',
+                                   'freshness_verified': True, 'margin_used': 0, 'options_enabled': False}
+                        order = {'symbol': sym, 'side': 'buy', 'asset_class': 'stock',
+                                 'qty': 1, 'order_type': 'limit', 'limit_price': str(estimated)}
+                        check = risk_policy.evaluate_shadow_order(order, account,
+                                                                   trading_enabled=False, emergency_stop=False)
+                        if check['status'] != 'SHADOW_ELIGIBLE':
+                            reasons.append('RISK_POLICY_BLOCK: ' + '; '.join(check['reasons']))
+                except (ValueError, KeyError):
+                    reasons.append('INVALID_PRICE_OR_RISK_INPUT')
+            okay, _ = safe_ai_for_virtual_buy(audit, sym)
+            if not okay:
+                reasons.append('AI_' + quality['status'])
+            elif quality.get('classification') not in ('opportunity','watch'):
+                reasons.append('AI_RISK_OR_UNCERTAIN_CLASSIFICATION')
+            if len(state.get('positions', {})) >= 5:
+                reasons.append('MAX_FIVE_VIRTUAL_POSITIONS')
+            if state.get('pending'):
+                reasons.append('ANOTHER_VIRTUAL_ORDER_PENDING')
+            if now is not None and state.get('last_trade_day') == now.date().isoformat():
+                reasons.append('ONE_VIRTUAL_TRADE_PER_DAY')
+            if not simulation_enabled:
+                reasons.append('SIMULATION_DISABLED')
+            if not reasons:
+                verdict = 'VIRTUAL_ENTRY_ELIGIBLE_NOT_EXECUTED'
+            else:
+                verdict = 'REJECT_ENTRY' if any('LIMIT' in x or 'RISK_POLICY_BLOCK' in x or
+                                               'UNAVAILABLE' in x or 'INVALID' in x for x in reasons) else 'WATCH'
+        if (sym, 'VIRTUAL_BUY_QUEUED') in recorded:
+            verdict = 'VIRTUAL_BUY_QUEUED_NEXT_BAR'
+            reasons = ['AI_AND_TECHNICAL_AND_RISK_GATES_PASSED']
+        decisions[sym] = {'verdict': verdict, 'reasons': reasons,
+                          'ai_research_quality': quality, 'market_bar_date': t.get('bar_date'),
+                          'technical': ('BULLISH' if t.get('bullish') else 'NOT_BULLISH') if
+                                       t.get('status') == 'READY' else t.get('status', 'UNAVAILABLE')}
+    return decisions
 
 
 def paper_warnings(broker):
@@ -316,7 +443,8 @@ def empty_state():
     return {'schema': 1, 'cash': '500.00', 'positions': {}, 'pending': None,
             'peak_equity': '500.00', 'day_start_equity': '500.00',
             'last_mark_day': None, 'last_trade_day': None,
-            'last_report_day': None, 'rotation': 0, 'history': []}
+            'last_report_day': None, 'rotation': 0, 'history': [],
+            'trade_ledger': [], 'performance_history': []}
 
 
 def load_state(repo):
@@ -346,6 +474,9 @@ def validate_state(state):
             datetime.fromisoformat(pending['signal_date'])
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError('Invalid pending order date') from exc
+    for name in ('trade_ledger', 'performance_history'):
+        if not isinstance(state.get(name, []), list):
+            raise ValueError('Invalid optional V3.1 performance state')
     positions = state['positions']
     if not isinstance(positions, dict) or len(positions) > 10:
         raise ValueError('Invalid simulator positions')
@@ -417,6 +548,9 @@ def virtual_step(state, market, audit, now):
                     state['positions'][sym] = {'qty':'1', 'basis':money(fill), 'entry_date':m['bar_date']}
                     events.append({'action':'VIRTUAL_BUY_FILLED','symbol':sym,'price':money(fill),
                                    'date':m['bar_date']})
+                    state['trade_ledger'] = (state.get('trade_ledger', []) + [
+                        {'side': 'BUY', 'symbol': sym, 'bar_date': m['bar_date'], 'quantity': '1',
+                         'fill_price': money(fill)}])[-100:]
                 else:
                     events.append({'action':'VIRTUAL_BUY_BLOCKED','symbol':sym,
                                    'reason':check['reasons']})
@@ -426,6 +560,12 @@ def virtual_step(state, market, audit, now):
                     fill = open_price * Decimal('.998')
                     state['cash'] = money(decimal(state['cash']) + decimal(p['qty']) * fill)
                     del state['positions'][sym]
+                    realized = (fill - decimal(p['basis'])) * decimal(p['qty'])
+                    state['trade_ledger'] = (state.get('trade_ledger', []) + [
+                        {'side': 'SELL', 'symbol': sym, 'bar_date': m['bar_date'],
+                         'quantity': p['qty'], 'fill_price': money(fill),
+                         'realized_pnl': money(realized),
+                         'basis_per_share': p['basis']}])[-100:]
                     events.append({'action':'VIRTUAL_SELL_FILLED','symbol':sym,'price':money(fill),
                                    'date':m['bar_date']})
             state['pending'] = None
@@ -481,10 +621,11 @@ def virtual_step(state, market, audit, now):
     return state, events
 
 
-def market_data(now, state, api_key):
-    """3 rotating watched symbols + all active/pending virtual positions, plus VTI benchmark."""
+def market_data(now, state, api_key, audit=None):
+    """Prioritize recent AI-audited tickers; always include holdings and VTI."""
     rotation = int(state.get('rotation', 0)) % len(WATCH)
-    chosen = [WATCH[(rotation+i) % len(WATCH)] for i in range(3)]
+    chosen, selection_mode = prioritize_research_candidates(audit or {}, state)
+    print('V3 candidate selection: ' + selection_mode + '; candidates ' + ','.join(chosen))
     chosen += list(state['positions'])
     if state.get('pending'):
         chosen.append(state['pending']['symbol'])
@@ -509,7 +650,10 @@ def market_data(now, state, api_key):
     if not any(r.get('status') == 'READY' for r in results.values()):
         # Retry the same symbol set after an outage; do not rotate past failed leads.
         return results, errors, rotation
-    return results, errors, (rotation + 3) % len(WATCH)
+    # Only advance the fallback watchlist rotation when that fallback was used.
+    next_rotation = ((rotation + 3) % len(WATCH) if selection_mode.startswith('WATCHLIST_FALLBACK')
+                     else rotation)
+    return results, errors, next_rotation
 
 
 def benchmark_mark(state, market):
@@ -533,7 +677,54 @@ def benchmark_mark(state, market):
             'note':'Daily adjusted bar closes; not a total-return or tax-adjusted benchmark'}
 
 
-def render_email(now, broker, ai, market, events, state, errors, benchmark):
+def performance_snapshot(state, market, benchmark, simulation_enabled):
+    """Daily virtual equity observations, not backtested or real-trading results."""
+    prices_ok = all(s in market and market[s].get('status') == 'READY'
+                    for s in state.get('positions', {}))
+    if not prices_ok:
+        return {'status': 'UNAVAILABLE_HELD_PRICES', 'note': 'Missing marks; no performance observation'}
+    bars_seen = [v.get('bar_date') for v in market.values() if v.get('status') == 'READY']
+    if not bars_seen:
+        return {'status': 'UNAVAILABLE_MARKET_DATA'}
+    bar_day = max(bars_seen)
+    if simulation_enabled:
+        point = {'market_date': bar_day, 'virtual_equity': state.get('virtual_equity', '500.00'),
+                 'benchmark_value': benchmark.get('vti_value_of_500') if benchmark.get('status')
+                 == 'daily_price_comparison_only' else None}
+        history = list(state.get('performance_history', []))
+        # Re-running a Saturday/Sunday run over the same Friday price must NOT
+        # inflate the number of independent trading sessions.
+        if history and history[-1].get('market_date') == bar_day:
+            history[-1] = point
+        elif not history or history[-1].get('market_date', '') < bar_day:
+            history.append(point)
+        state['performance_history'] = history[-100:]
+    history = state.get('performance_history', [])
+    equity_now = decimal(state.get('virtual_equity', '500.00'))
+    pnl = equity_now - CAPITAL
+    peak = CAPITAL
+    maximum_drawdown = Decimal('0')
+    for entry in history:
+        eq = decimal(entry['virtual_equity'])
+        peak = max(peak, eq)
+        if peak > 0:
+            maximum_drawdown = max(maximum_drawdown, (peak - eq) / peak * 100)
+    trades = [x for x in state.get('trade_ledger', []) if x.get('side') == 'SELL']
+    wins = sum(decimal(x.get('realized_pnl', '0')) > 0 for x in trades)
+    realized = sum((decimal(x.get('realized_pnl', '0')) for x in trades), Decimal('0'))
+    status = ('SIMULATION_DISABLED' if not simulation_enabled else
+              'BASELINE_ONLY' if len(history) < 2 else 'OBSERVATIONS_IN_PROGRESS')
+    return {'status': status, 'observed_sessions': len(history), 'most_recent_market_day': bar_day,
+            'virtual_equity': money(equity_now), 'net_pnl_dollars': money(pnl),
+            'net_return_percent': money(pnl / CAPITAL * 100),
+            'max_observed_drawdown_percent': money(maximum_drawdown),
+            'closed_virtual_trades': len(trades), 'profitable_closed_trades': wins,
+            'realized_closed_pnl': money(realized),
+            'benchmark': benchmark,
+            'note': 'Virtual observations, not predictive. Closed trades reflect retained last 100 fills; excludes taxes, commissions and other real execution effects.'}
+
+
+def render_email(now, broker, ai, market, events, state, errors, benchmark, decisions=None, performance=None):
     lines = ['V3 INVESTMENT PORTFOLIO & VIRTUAL PAPER REPORT',
              'As of UTC: ' + now.isoformat(timespec='minutes'),
              'No live orders. No Alpaca paper orders. All simulated fills are virtual.', '',
@@ -550,6 +741,14 @@ def render_email(now, broker, ai, market, events, state, errors, benchmark):
     for s,t in market.items():
         lines.append(s + ': ' + str(t.get('status')) + ', last close ' + str(t.get('last_close','unknown'))
                      + ', date ' + str(t.get('bar_date','unknown')))
+    if decisions:
+        lines += ['', 'V3.1 decision explanations (virtual only):']
+        for sym, d in decisions.items():
+            lines.append(f"{sym}: {d['verdict']} | {', '.join(d['reasons']) or 'NO_BLOCKING_RULE'}")
+    if performance:
+        lines += ['', 'Virtual performance: ' + str(performance.get('status')),
+                  'Observed trading dates: ' + str(performance.get('observed_sessions', 0)),
+                  'Virtual P/L: $' + str(performance.get('net_pnl_dollars', 'unavailable'))]
     if errors:
         lines += ['', 'Source errors: '+ ', '.join(errors)]
     lines += ['', 'AI model agreement is not proof of investment value or profitability.',
@@ -571,7 +770,7 @@ def main():
     key = os.environ.get('MASSIVE_API_KEY', '').strip()
     if not key:
         raise RuntimeError('MASSIVE_API_KEY not configured; no state changed')
-    market, errors, next_rotation = market_data(now, state, key)
+    market, errors, next_rotation = market_data(now, state, key, audit=audit)
     state['rotation'] = next_rotation
     active = {s:t for s,t in market.items() if t.get('status') == 'READY'}
     if not active:
@@ -587,6 +786,12 @@ def main():
             events = [{'action':'SIMULATION_OFF','reason':'Enable V3_SIMULATE after reviewing reports'}]
         state['virtual_equity'] = state.get('virtual_equity','500.00')
     benchmark = benchmark_mark(state, market)
+    simulated = is_true('V3_SIMULATE', default=False)
+    decisions = explain_virtual_decisions(market, audit, state, simulated, events, now=now)
+    performance = performance_snapshot(state, market, benchmark, simulated)
+    for symbol, decision in decisions.items():
+        print('V3.1 ' + symbol + ': ' + decision['verdict'] +
+              ' [' + ', '.join(decision['reasons']) + ']')
     state['history'] = (state.get('history', []) + [
         {'at':now.isoformat(), 'equity':state.get('virtual_equity','500.00'),'events':events}
     ])[-80:]
@@ -594,6 +799,16 @@ def main():
               'alpaca_paper':broker,'alpaca_paper_warnings':paper_warnings(broker),
               'ai_audit':audit,'daily_market':market,
               'market_errors':errors,
+              'v31_decisions': decisions, 'v31_performance': performance,
+              'v31_candidate_selection': {
+                  'rule': ('RECENT_AI_AUDIT' if audit.get('status') == 'recent' and
+                           any(s in WATCH and s not in ('VTI','BOTZ','GRID')
+                               for s in (audit.get('by_symbol') or {}))
+                           else 'WATCHLIST_FALLBACK_NO_AI_CANDIDATES'),
+                  'researched_symbols': sorted((audit.get('by_symbol') or {}).keys()),
+                  'priced_candidates': [s for s in market if s != 'VTI'],
+                  'unscanned_research_symbols': sorted(set((audit.get('by_symbol') or {})) - set(market)),
+                  'note': 'Only priced candidates evaluated. No recommendation for unscanned symbols.'},
               'market_data_status': ('ready' if active and not errors else
                                      'partial' if active else 'unavailable'),
               'virtual_state':state,'events':events,
@@ -608,7 +823,7 @@ def main():
             print('V3 email skipped (Resend missing); audit still available')
         else:
             base.send_email('V3 portfolio + virtual paper review',
-                            render_email(now,broker,audit,market,events,state,errors,benchmark))
+                            render_email(now,broker,audit,market,events,state,errors,benchmark, decisions, performance))
             state['last_report_day'] = now.date().isoformat()
             print('V3 email submitted')
     save_state(repo, issue, state)
