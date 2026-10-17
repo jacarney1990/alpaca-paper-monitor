@@ -1,0 +1,53 @@
+name: Investment V3 (paper-aware, virtual trades only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_virtual_simulation:
+        description: 'Simulate $500 NEXT-BAR virtual trades (no Alpaca orders)'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '23 22 * * 1-5'
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: investment-v3-virtual
+  cancel-in-progress: false
+
+jobs:
+  v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run existing and V3 safety tests
+        run: python -m unittest discover -s tests -v
+      - name: Evaluate paper holdings and V3 simulation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          ALERT_EMAIL_FROM: ${{ vars.ALERT_EMAIL_FROM }}
+          V3_SEND_EMAIL: 'true'
+          V3_SIMULATE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_virtual_simulation) || vars.V3_SIMULATE == 'true' }}
+        run: python v3_engine.py
+      - name: Save V3 audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: investment-v3-${{ github.run_id }}
+          path: v3-report.json
+          if-no-files-found: ignore
+          retention-days: 30
