@@ -26,5 +26,5 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
           ALERT_EMAIL_FROM: ${{ vars.ALERT_EMAIL_FROM }}
-          SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: python intelligence.py
