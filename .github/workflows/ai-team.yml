@@ -50,7 +50,7 @@ jobs:
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
-          MAX_AI_SYMBOLS_PER_RUN: '2'
+          MAX_AI_SYMBOLS_PER_RUN: '1'
           FORCE_AI_RESEARCH: ${{ inputs.force_research }}
         run: python ai_team.py
       - name: Save review audit
