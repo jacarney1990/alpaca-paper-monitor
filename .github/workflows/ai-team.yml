@@ -1,4 +1,3 @@
-
 name: AI Team Research (read only)
 
 on:
@@ -10,7 +9,8 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: '39 */4 * * *'
+    # One daily research batch limits free-tier Gemini API usage.
+    - cron: '39 21 * * *'
 
 permissions:
   contents: read
@@ -24,42 +24,31 @@ jobs:
   research:
     runs-on: ubuntu-latest
     timeout-minutes: 22
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Safety and validation tests
         run: python -m unittest discover -s tests -v
-
       - name: Run independent AI research; never place orders
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
           ALERT_EMAIL_FROM: ${{ vars.ALERT_EMAIL_FROM }}
-
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
           MASSIVE_API_KEY: ${{ secrets.MASSIVE_API_KEY }}
-
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
-
-          MAX_AI_SYMBOLS_PER_RUN: '3'
+          MAX_AI_SYMBOLS_PER_RUN: '2'
           FORCE_AI_RESEARCH: ${{ inputs.force_research }}
-
         run: python ai_team.py
-
       - name: Save review audit
         if: always()
         uses: actions/upload-artifact@v4
