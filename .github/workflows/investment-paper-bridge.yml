@@ -1,0 +1,43 @@
+name: Investment V3.3 Paper Broker Readiness (NO orders)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # V3 runs at 22:23 UTC weekdays; this preflight reviews it later.
+    - cron: '11 23 * * 1-5'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: investment-paper-readiness-v33
+  cancel-in-progress: false
+
+jobs:
+  paper-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run paper-preflight regression tests
+        run: python -m unittest discover -s tests -p 'test_paper_bridge.py' -v
+      - name: Assess paper account and V3.1 decisions (NO orders)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+        run: python paper_bridge.py
+      - name: Preserve paper readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-readiness-${{ github.run_id }}
+          path: paper-readiness.json
+          if-no-files-found: warn
+          retention-days: 30
