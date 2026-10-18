@@ -69,3 +69,13 @@ async function launch(){
 }
 $('connect').onclick=connect;$('launch').onclick=launch;
 $('reload').onclick=()=>history().catch(e=>tell(e.message));
+function chooseWorkflow(workflow){
+ $('workflow').value=workflow;
+ $('workflow').scrollIntoView({behavior:'smooth',block:'center'});
+ tell('Selected '+$('workflow').selectedOptions[0].text+'. Enter your task and choose the AI providers.');
+}
+$('nav-command').onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+$('nav-history').onclick=()=>$('history').scrollIntoView({behavior:'smooth',block:'start'});
+$('nav-investment').onclick=()=>chooseWorkflow('investment');
+$('nav-research').onclick=()=>chooseWorkflow('research');
+$('nav-project').onclick=()=>chooseWorkflow('project');
