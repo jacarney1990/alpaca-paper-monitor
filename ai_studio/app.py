@@ -256,6 +256,7 @@ def run_one_time_safe_test():
     import time
     practice = "error"
     results = {}
+    model_listed = {}
     token = os.getenv("STUDIO_ACCESS_TOKEN", "")
     try:
         if not token:
@@ -298,14 +299,19 @@ def run_one_time_safe_test():
                    for name in PROVIDERS}
         for name, future in futures.items():
             try:
-                results[name] = future.result(timeout=12).get("status", "unknown")
+                status = future.result(timeout=12)
+                results[name] = status.get("status", "unknown")
+                model_listed[name] = status.get("model_listed", "unknown")
             except Exception:
                 results[name] = "check_error"
+                model_listed[name] = "unknown"
     app.logger.warning(
         "STUDIO_SAFE_TEST practice=%s OpenAI=%s Gemini=%s Groq=%s Claude=%s "
+        "Gemini_model_listed=%s Groq_model_listed=%s "
         "ai_inference_calls=0 brokerage_orders=0 api_usage_enabled=%s",
         practice, results.get("OpenAI"), results.get("Gemini"),
         results.get("Groq"), results.get("Claude"),
+        model_listed.get("Gemini"), model_listed.get("Groq"),
         os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true"
     )
 
