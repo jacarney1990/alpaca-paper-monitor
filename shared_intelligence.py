@@ -278,10 +278,16 @@ def collaborate(row, entries, now):
             followups[model] = ai_team.validate_review(ai_team.ask_provider(model, prompt), allowed_ids)
         except HTTPError as exc:
             errors[model] = f'HTTP_{exc.code}'
+            # Diagnostics contain only symbol, model name and HTTP status; never response bodies.
+            print(f'V3.5 {symbol} {model} cross-review unavailable: HTTP_{exc.code}')
         except (ai_team.ProviderReviewError, ValueError, TypeError, KeyError, URLError, TimeoutError):
             errors[model] = 'PROVIDER_OR_VALIDATION_FAILURE'
+            print(f'V3.5 {symbol} {model} cross-review unavailable: PROVIDER_OR_VALIDATION_FAILURE')
     if len(followups) < 2:
-        raise SharedIntelligenceError('TWO_MODEL_CROSS_REVIEW_INCOMPLETE')
+        # Do not journal incomplete reviews or use them as consensus.
+        # Expose the provider/status category without provider response text or secrets.
+        statuses = ','.join(f'{m}_{errors[m]}' for m in sorted(errors)) or 'UNKNOWN'
+        raise SharedIntelligenceError('TWO_MODEL_CROSS_REVIEW_INCOMPLETE:' + statuses)
     agreement, changes = compare(originals, followups)
     shared_summary = ' | '.join(f'{m}: {r["summary"]}' for m, r in followups.items())[:900]
     return {
@@ -339,16 +345,27 @@ def run(repo, token, now):
             pending.append((stamp, row))
     if not pending:
         return {'status': 'NO_NEW_RESEARCH_TO_CROSS_REVIEW', 'source_ai_run_id': run_id, 'entries_written': 0}
-    reports = []
+    reports, failures = [], []
     for stamp, row in pending[:MAX_STOCKS_PER_RUN]:
-        r = collaborate(row, existing, now)
+        try:
+            r = collaborate(row, existing, now)
+        except SharedIntelligenceError as exc:
+            # Do not discard other fully reviewed tickers because one model had a 503.
+            # A failed ticker remains absent from the journal and can retry next run.
+            failures.append({'symbol': stamp.split(':', 1)[1], 'code': str(exc)})
+            continue
         r['research_key'] = stamp
         r['source_ai_run_id'] = run_id
         r['original_report_as_of'] = report_time.isoformat()
         reports.append(r)
-    retained_count = store_journal(repo, entries_no, (existing + [compact_journal_entry(x) for x in reports])[-MAX_RESEARCHES:])
-    return {'status': 'CROSS_REVIEWS_SAVED', 'source_ai_run_id': run_id,
-            'entries_written': len(reports), 'symbol_results': reports,
+    retained_count = len(existing)
+    if reports:
+        retained_count = store_journal(repo, entries_no,
+                                      (existing + [compact_journal_entry(x) for x in reports])[-MAX_RESEARCHES:])
+    return {'status': 'INCOMPLETE' if failures else 'CROSS_REVIEWS_SAVED',
+            'source_ai_run_id': run_id, 'entries_written': len(reports),
+            'symbol_results': reports, 'failed_symbols': failures,
+            'error': 'RETRY_UNFINISHED_CROSS_REVIEWS_NEXT_RUN' if failures else None,
             'journal_total_entries': retained_count}
 
 
@@ -374,6 +391,8 @@ def main():
     print('V3.5 shared intelligence: ' + audit['status'])
     for result in audit.get('symbol_results', []):
         print(f'{result["symbol"]}: {result["agreement"]}; sources=metadata_only; broker_orders=0')
+    for failed in audit.get('failed_symbols', []):
+        print(f'{failed["symbol"]}: INCOMPLETE ({failed["code"]}); will retry on next scheduled run')
     print('Private journal stores no holdings/keys. Brokerage executions: 0')
     if audit['status'] == 'INCOMPLETE':
         sys.exit(1)
