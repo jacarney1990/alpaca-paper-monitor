@@ -26,6 +26,20 @@ class StudioTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.temp.cleanup()
 
+    def test_static_assets_and_csp_are_compatible(self):
+        response = self.client.get("/")
+        markup = response.get_data(as_text=True)
+        csp = response.headers["Content-Security-Policy"]
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('src="/static/app.js"', markup)
+        self.assertIn('href="/static/style.css"', markup)
+        self.assertNotIn("<script>", markup)
+        self.assertNotIn("<style>", markup)
+        self.assertIn("script-src 'self'", csp)
+        self.assertIn("style-src 'self'", csp)
+        self.assertEqual(self.client.get("/static/app.js").status_code, 200)
+        self.assertEqual(self.client.get("/static/style.css").status_code, 200)
+
     def test_health_has_no_trade_execution(self):
         data = self.client.get("/health").json
         self.assertEqual(data["status"], "ok")
