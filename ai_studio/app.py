@@ -311,5 +311,86 @@ def run_one_time_safe_test():
 
 run_one_time_safe_test()
 
+LIVE_SMOKE_NAME = "nexus-first-real-ai-team"
+LIVE_SMOKE_TOPIC = (
+    "For a small mobile AI research dashboard, recommend three useful "
+    "verification checks and one important limitation. Be concise. "
+    "Separate observations from unverified assumptions."
+)
+
+def _live_smoke_worker(job_id):
+    """One tiny real multi-model test; never interacts with brokerages."""
+    providers = ["OpenAI", "Gemini", "Groq"]
+    try:
+        result = run_task(LIVE_SMOKE_TOPIC, "team", "Researcher", providers, "project")
+        initial = {row["provider"]: row["status"] for row in result["initial"]}
+        reviews = {row["provider"]: row["status"] for row in result["cross_review"]}
+        synthesized = bool(result["synthesis"]) and not result["synthesis"].startswith(
+            "Final synthesis unavailable"
+        )
+        complete = all(initial.get(n) == "complete" for n in providers) and all(
+            reviews.get(n) == "complete" for n in providers
+        ) and synthesized
+        outcome = "complete" if complete else "failed"
+        state = "PASS" if complete else "PARTIAL_OR_FAILED"
+        # The topic is fixed and contains no user information.
+        excerpt = result["synthesis"].replace("\n", " ")[:450] if synthesized else "unavailable"
+        app.logger.warning(
+            "STUDIO_LIVE_SMOKE result=%s initial=%s reviews=%s synthesis=%s "
+            "max_requests=7 broker_orders=0 preview=%s",
+            state, initial, reviews, synthesized, excerpt
+        )
+    except Exception as exc:
+        result = {"error": "Smoke test failed safely", "type": type(exc).__name__}
+        outcome = "failed"
+        app.logger.warning("STUDIO_LIVE_SMOKE result=ERROR type=%s broker_orders=0",
+                           type(exc).__name__)
+    with _LOCK, connection() as db:
+        db.execute("UPDATE jobs SET status=?, output=? WHERE id=?",
+                   (outcome, json.dumps(result), job_id))
+
+def start_live_smoke_if_requested():
+    """Run at most once per local database, only with a dedicated opt-in flag.
+
+    Up to three independent answers, three peer reviews and one final
+    synthesis. Ordinary live API calls remain disabled for users.
+    """
+    if os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower() != "true":
+        return
+    from engine import output_token_limit
+    if output_token_limit() > 600:
+        app.logger.warning("STUDIO_LIVE_SMOKE blocked: output token cap exceeds 600")
+        return
+    if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true":
+        app.logger.warning("STUDIO_LIVE_SMOKE blocked: ordinary API usage must remain off")
+        return
+    for name in ("OpenAI", "Gemini", "Groq"):
+        if not provider_status()[name]["configured"]:
+            app.logger.warning("STUDIO_LIVE_SMOKE blocked: missing provider %s", name)
+            return
+    with _LOCK, connection() as db:
+        db.execute("CREATE TABLE IF NOT EXISTS one_time_smoke "
+                   "(name TEXT PRIMARY KEY, job_id TEXT NOT NULL)")
+        found = db.execute("SELECT job_id FROM one_time_smoke WHERE name=?",
+                           (LIVE_SMOKE_NAME,)).fetchone()
+        if found:
+            app.logger.warning("STUDIO_LIVE_SMOKE already started; no repeat")
+            return
+        job_id = str(uuid.uuid4())
+        db.execute("INSERT INTO one_time_smoke(name,job_id) VALUES(?,?)",
+                   (LIVE_SMOKE_NAME, job_id))
+        db.execute("INSERT INTO jobs VALUES(?,?,?,?,?,?,?,?,?)",
+                   (job_id, datetime.now(timezone.utc).isoformat(), LIVE_SMOKE_TOPIC,
+                    "project", "team", "Researcher",
+                    json.dumps(["OpenAI", "Gemini", "Groq"]), "running", None))
+    app.logger.warning(
+        "STUDIO_LIVE_SMOKE starting once; providers=OpenAI,Gemini,Groq "
+        "max_requests=7 max_output_tokens=%d api_usage_enabled=false orders=0",
+        output_token_limit()
+    )
+    threading.Thread(target=_live_smoke_worker, args=(job_id,), daemon=True).start()
+
+start_live_smoke_if_requested()
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
