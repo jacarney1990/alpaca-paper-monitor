@@ -28,6 +28,7 @@ CAPITAL = Decimal('500.00')
 MAX_AGE_DAYS = 5  # permits weekends and US market holidays; NOT real-time execution data
 WATCH = ('NXE','IONQ','OKLO','ASTS','VRT','RKLB','CRSP','POET','SERV','SLDP','VTI','BOTZ','GRID','IGC','TLRY')
 MAX_REQUEST_BYTES = 2_500_000
+SHARED_JOURNAL_TITLE = 'Shared AI Intelligence Journal (automated - private; do not edit)'
 
 
 class MassiveDataError(ValueError):
@@ -279,6 +280,60 @@ def ai_audit(repo, token, now):
     except (HTTPError, URLError, ValueError, KeyError, OSError, zipfile.BadZipFile) as exc:
         return {'status': 'unavailable', 'reason': 'AI audit retrieval: '
                 + (f'HTTP {exc.code}' if isinstance(exc, HTTPError) else type(exc).__name__)}
+
+
+
+def shared_research_context(repo, now):
+    """Read verified-format V3.5 peer reviews as context, never as a trade signal.
+
+    This read intentionally does not change ai_audit(), safe_ai_for_virtual_buy(),
+    technical signals or risk_policy. If journal access fails, don't fabricate context.
+    """
+    try:
+        rows = base.github(f'/repos/{repo}/issues?state=all&per_page=100')
+        matches = [x for x in rows if isinstance(x, dict) and
+                   'pull_request' not in x and x.get('title') == SHARED_JOURNAL_TITLE]
+        if len(matches) != 1:
+            return {'status': 'UNAVAILABLE', 'reason': 'JOURNAL_MISSING_OR_AMBIGUOUS',
+                    'used_for_trade_approval': False, 'by_symbol': {}}
+        body = json.loads(matches[0].get('body') or '')
+        if not isinstance(body, dict) or body.get('schema') != 1 or not isinstance(body.get('entries'), list):
+            raise ValueError('Invalid journal schema')
+        by_symbol = {}
+        for entry in body['entries'][-60:]:
+            if not isinstance(entry, dict):
+                continue
+            symbol = entry.get('symbol')
+            if symbol not in WATCH or symbol == 'VTI':
+                continue
+            if entry.get('investment_action') != 'RESEARCH_ONLY':
+                continue
+            try:
+                t = datetime.fromisoformat(str(entry.get('as_of', '')).replace('Z', '+00:00'))
+                if t.tzinfo is None:
+                    continue
+                t = t.astimezone(timezone.utc)
+                age = (now - t).total_seconds()
+            except (ValueError, TypeError, OverflowError):
+                continue
+            if not 0 <= age <= 14 * 86400:
+                continue
+            agreement = entry.get('agreement')
+            if agreement not in ('AGREE_REVIEW_ONLY', 'DISAGREEMENT_OR_UNCERTAIN'):
+                continue
+            existing = by_symbol.get(symbol)
+            if existing is None or t.isoformat() > existing['as_of']:
+                by_symbol[symbol] = {
+                    'as_of': t.isoformat(), 'agreement': agreement,
+                    'evidence_status': 'UNVERIFIED_MODEL_OPINIONS',
+                    'eligible_to_authorize_trades': False,
+                    'summary': str(entry.get('shared_summary') or '')[:360],
+                }
+        return {'status': 'RECENT' if by_symbol else 'EMPTY_OR_STALE',
+                'used_for_trade_approval': False, 'by_symbol': by_symbol}
+    except (ValueError, TypeError, KeyError, HTTPError, URLError, OSError, OverflowError):
+        return {'status': 'UNAVAILABLE', 'reason': 'JOURNAL_RETRIEVAL_OR_VALIDATION_FAILED',
+                'used_for_trade_approval': False, 'by_symbol': {}}
 
 
 def safe_ai_for_virtual_buy(audit, symbol):
@@ -767,6 +822,8 @@ def main():
     print('Alpaca PAPER read-only sync: '+broker['status'])
     audit = ai_audit(repo, os.environ['GITHUB_TOKEN'], now)
     print('Recent 2+ model audit: '+audit['status'])
+    shared = shared_research_context(repo, now)
+    print('Shared AI research context: ' + shared['status'] + ' (research only; never trade approval)')
     key = os.environ.get('MASSIVE_API_KEY', '').strip()
     if not key:
         raise RuntimeError('MASSIVE_API_KEY not configured; no state changed')
@@ -790,6 +847,9 @@ def main():
     decisions = explain_virtual_decisions(market, audit, state, simulated, events, now=now)
     performance = performance_snapshot(state, market, benchmark, simulated)
     for symbol, decision in decisions.items():
+        decision['shared_ai_context'] = shared.get('by_symbol', {}).get(symbol, {
+            'status': 'NO_RECENT_SHARED_RESEARCH', 'eligible_to_authorize_trades': False})
+    for symbol, decision in decisions.items():
         print('V3.1 ' + symbol + ': ' + decision['verdict'] +
               ' [' + ', '.join(decision['reasons']) + ']')
     state['history'] = (state.get('history', []) + [
@@ -797,7 +857,7 @@ def main():
     ])[-80:]
     report = {'as_of_utc':now.isoformat(),'environment':'PAPER_READ_ONLY_AND_VIRTUAL_ONLY',
               'alpaca_paper':broker,'alpaca_paper_warnings':paper_warnings(broker),
-              'ai_audit':audit,'daily_market':market,
+              'ai_audit':audit,'shared_ai_memory':shared,'daily_market':market,
               'market_errors':errors,
               'v31_decisions': decisions, 'v31_performance': performance,
               'v31_candidate_selection': {
