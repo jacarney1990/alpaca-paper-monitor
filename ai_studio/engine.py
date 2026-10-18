@@ -7,8 +7,8 @@ import requests
 PROVIDERS = {
     "OpenAI": ("OPENAI_API_KEY", "OPENAI_MODEL", "gpt-4.1-mini"),
     "Claude": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "claude-haiku-4-5"),
-    "Gemini": ("GEMINI_API_KEY", "GEMINI_MODEL", "gemini-2.5-flash"),
-    "Groq": ("GROQ_API_KEY", "GROQ_MODEL", "llama-3.3-70b-versatile"),
+    "Gemini": ("GEMINI_API_KEY", "GEMINI_MODEL", "gemini-3.5-flash-lite"),
+    "Groq": ("GROQ_API_KEY", "GROQ_MODEL", "qwen/qwen3.8-27b"),
 }
 ROLES = {
     "Researcher": "Analyze the supplied task. Separate known facts from assumptions. Never invent citations.",
@@ -72,7 +72,17 @@ def invoke(name, system, prompt):
                 json={"model": model, "max_tokens": output_token_limit(),
                       "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]})
         if not r.ok:
-            raise ProviderError("Provider HTTP " + str(r.status_code))
+            # Surface only a short provider-defined error code, never response bodies.
+            permitted_codes = {"insufficient_quota", "rate_limit_exceeded",
+                               "billing_hard_limit_reached", "model_not_found",
+                               "model_decommissioned", "resource_exhausted",
+                               "invalid_api_key", "invalid_request_error"}
+            try:
+                code = r.json().get("error", {}).get("code", "")
+            except (ValueError, TypeError, AttributeError):
+                code = ""
+            detail = " (" + code + ")" if isinstance(code, str) and code in permitted_codes else ""
+            raise ProviderError("Provider HTTP " + str(r.status_code) + detail)
         body = r.json()
         if name == "OpenAI":
             answer = _text_openai(body)
@@ -201,7 +211,24 @@ def check_provider_key(name):
     try:
         reply = requests.get(url, headers=headers, timeout=9)
         if reply.status_code == 200:
-            return {"status": "valid", "detail": "Credentials accepted by model-list endpoint"}
+            # A metadata listing does not prove enough quota for model inference.
+            _, model_env, fallback = PROVIDERS[name]
+            requested = os.getenv(model_env, fallback).strip() or fallback
+            try:
+                data = reply.json()
+                entries = data.get("models", []) if name == "Gemini" else data.get("data", [])
+                identifiers = {item.get("name", "") if name == "Gemini" else item.get("id", "")
+                               for item in entries if isinstance(item, dict)}
+                available = requested in identifiers or ("models/" + requested) in identifiers
+                partial = bool(data.get("nextPageToken"))
+            except (ValueError, TypeError, AttributeError):
+                available = False
+                partial = True
+            presence = "model listed" if available else ("model listing incomplete" if partial
+                                                       else "model not in returned listing")
+            return {"status": "valid", "model_listed": True if available else None if partial else False,
+                    "detail": "Credentials accepted; " + requested + ": " + presence
+                              + ". Inference quota remains untested."}
         if reply.status_code in (400, 401, 403):
             return {"status": "rejected", "detail": "Provider rejected access (HTTP %d)" % reply.status_code}
         if reply.status_code == 429:
