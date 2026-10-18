@@ -79,3 +79,30 @@ $('nav-history').onclick=()=>$('history').scrollIntoView({behavior:'smooth',bloc
 $('nav-investment').onclick=()=>chooseWorkflow('investment');
 $('nav-research').onclick=()=>chooseWorkflow('research');
 $('nav-project').onclick=()=>chooseWorkflow('project');
+
+async function loadFinance(){
+ const target=$('finance-status');
+ target.textContent='Checking existing investment workflows…';
+ try{
+  const data=await api('/api/finance/status');
+  target.replaceChildren();
+  const summary=document.createElement('p');
+  summary.textContent='Latest GitHub Actions run metadata · no brokerage execution · checked '+data.as_of;
+  target.appendChild(summary);
+  for(const wf of data.workflows){
+   const card=document.createElement('div');card.className='block';
+   const name=document.createElement('h3');name.textContent=wf.name;
+   const meta=document.createElement('p');
+   meta.textContent=wf.status+' · '+wf.conclusion+(wf.updated?' · '+wf.updated:'');
+   card.append(name,meta);
+   const approvedPrefix='https://github.com/jacarney1990/alpaca-paper-monitor/actions/runs/';
+   if(wf.url&&wf.url.startsWith(approvedPrefix)&&/^\d+$/.test(wf.url.slice(approvedPrefix.length))){
+    const link=document.createElement('a');link.href=wf.url;link.target='_blank';link.rel='noopener noreferrer';
+    link.textContent='Open GitHub run';card.appendChild(link);
+   }
+   target.appendChild(card);
+  }
+ }catch(e){target.textContent=e.message;}
+}
+$('check-finance').onclick=loadFinance;
+$('nav-investment').addEventListener('click',()=>{if(token)loadFinance();});
