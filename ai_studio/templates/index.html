@@ -1,38 +1,132 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Multi-AI Intelligence Studio</title>
-<link rel="stylesheet" href="/static/style.css"></head>
-<body><div class="shell">
-<aside><div class="logo">◆ MULTI-AI<br><b>INTELLIGENCE STUDIO</b></div><div class="navcaption">WORKSPACES</div><button type="button" class="nav" id="nav-command">◈ Command Center</button><button type="button" class="nav secondary" id="nav-history">▤ Mission History</button><div class="navcaption">WORKFLOWS</div><button type="button" class="nav secondary" id="nav-investment">◉ Investing Research</button><button type="button" class="nav secondary" id="nav-research">◎ Extreme Research</button><button type="button" class="nav secondary" id="nav-project">◇ Advanced Projects</button><div class="foot">REAL PROVIDER APIs<br>Independent + Collaborative<br>Brokerage execution disabled</div></aside>
-<main><header><div><div class="eyebrow">PRIVATE MULTI-AGENT PLATFORM</div><h1>AI Command Center</h1><p>One mission. Multiple independent AI perspectives. Coordinated intelligence.</p></div><div class="safety">● RESEARCH ONLY · NO TRADES</div></header>
-<section class="panel"><div class="row"><div><div class="eyebrow">PRIVATE ACCESS</div><h2>Connect to your workspace</h2><p>Use your private Studio access token from Render. It is held only in this page's memory.</p></div><div class="tokenrow"><input type="password" id="token" autocomplete="off" placeholder="Studio access token" aria-label="Studio access token"><button id="connect">Connect</button></div></div><div id="feedback" role="status"></div></section>
-<div class="split">
-<section class="panel"><div class="eyebrow">01 / MISSION CONTROL</div><h2>Launch intelligence mission</h2>
-<label for="workflow">Select mission type</label><select id="workflow"><option value="research">Extreme Research</option><option value="investment">AI Investing Intelligence</option><option value="project">Advanced Projects and Engineering</option></select>
-<label for="topic">Task instructions</label><textarea id="topic" maxlength="5000" placeholder="Describe the research question, investment hypothesis or advanced project..."></textarea>
-<label for="mode">How should the AI agents work?</label><select id="mode"><option value="team">As a team — independent analysis, peer review and synthesis</option><option value="independent">Independently — separate unshared first-round answers</option></select>
-<label for="role">Agent specialization</label><select id="role"><option>Researcher</option><option>Skeptic</option><option>Engineer</option><option>Risk Auditor</option><option>Synthesizer</option></select>
-<button class="full" id="launch">▶ Launch Mission</button>
-<p class="fine">Only real configured AI APIs are used. AI calls are OFF by default and may incur provider charges if separately enabled. No brokerage orders or external project changes are made.</p>
-</section>
-<section class="panel"><div class="eyebrow">02 / YOUR AI TEAM</div><h2>Provider network <small id="count">Not connected</small></h2><div id="providers" class="providers"><div class="empty">Connect your private token to inspect the AI network.</div></div><div id="usage" class="notice"></div>
-<div class="setup panel-mini" id="provider-setup" aria-live="polite">
-<strong>Direct provider setup (safe mode)</strong>
-<p id="provider-guidance">Connect your private Studio access token above to check which API credentials are missing.</p>
-<div id="missing-keys" class="missing-keys"></div>
-<a class="setup-link" href="https://dashboard.render.com/web/srv-dbaedtbncjis73d8hm60" target="_blank" rel="noopener noreferrer">Open Studio settings on Render ↗</a>
-<p class="fine">Choose <b>Environment</b> in Render. Add the missing API key names, using secret values from your own records. Save without sharing keys in chat. Existing GitHub Actions secrets and a different Render service do not automatically transfer. API usage remains disabled unless explicitly authorized.</p>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1324">
+<meta name="description" content="Your private AI workspace for research, project work and read-only investment intelligence.">
+<title>Nexus | Your AI workspace</title>
+<link rel="stylesheet" href="/static/style.css">
+<script defer src="/static/app.js"></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <a href="#home" class="brand" aria-label="Nexus AI home"><span class="brand-icon">✦</span><span><strong>NEXUS</strong><small>INTELLIGENCE STUDIO</small></span></a>
+    <div class="nav-label">YOUR WORKSPACE</div>
+    <nav class="main-nav" aria-label="Sections">
+      <button id="nav-command" type="button" class="nav active"><span class="nav-symbol">⌂</span> Home</button>
+      <button id="nav-research" type="button" class="nav"><span class="nav-symbol">◎</span> Research</button>
+      <button id="nav-investment" type="button" class="nav"><span class="nav-symbol">↗</span> Investing</button>
+      <button id="nav-project" type="button" class="nav"><span class="nav-symbol">▤</span> Projects</button>
+      <button id="nav-history" type="button" class="nav"><span class="nav-symbol">◷</span> History</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="safety-note"><span class="dot aqua"></span><div><strong>Shadow mode active</strong><small>No brokerage orders</small></div></div>
+      <a href="#settings" class="side-settings">⚙ &nbsp; Account &amp; connections</a>
+    </div>
+  </aside>
+
+  <main id="home" class="content">
+    <header class="topbar">
+      <div class="crumb"><span class="brand-inline">✦ NEXUS</span> <span class="slash">/</span> Command center</div>
+      <div class="top-status"><span class="dot aqua"></span> Safe research mode</div>
+    </header>
+
+    <section class="welcome" aria-labelledby="welcome-title">
+      <div class="welcome-copy">
+        <div class="eyebrow light">WELCOME TO YOUR AI WORKSPACE</div>
+        <h1 id="welcome-title">Big ideas, <em>better answers.</em></h1>
+        <p>Bring your AI team together to research, challenge ideas and help move projects forward. All in one easy place.</p>
+        <div class="welcome-checks"><span>✓ Multiple AI perspectives</span><span>✓ Your investing platform</span><span>✓ Your control</span></div>
+      </div>
+      <div class="hero-orbit" aria-hidden="true"><div class="orbit o1"></div><div class="orbit o2"></div><div class="hero-core">✦</div><span class="orb a">G</span><span class="orb b">O</span><span class="orb c">◎</span></div>
+    </section>
+
+    <section id="settings" class="access card" aria-label="Workspace access">
+      <div class="section-head">
+        <div><div class="eyebrow">PRIVATE WORKSPACE</div><h2>Connect your workspace</h2><p id="access-caption">Enter your private access code once each time you open the page. It is not saved on your device.</p></div>
+        <span id="access-state" class="status-pill neutral">● Not connected</span>
+      </div>
+      <div class="access-form"><label class="sr-only" for="token">Private Studio access code</label><input id="token" type="password" placeholder="Private Studio access code" autocomplete="off"><button id="connect" class="btn primary" type="button">Connect <span aria-hidden="true">→</span></button></div>
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="overview-cards" aria-label="Platform status">
+      <article class="mini-card"><div class="mini-icon cyan">✦</div><div><span class="metric" id="count">—</span><span class="metric-label">AI keys saved</span><small>Presence only; not yet tested live</small></div></article>
+      <article class="mini-card"><div class="mini-icon violet">▣</div><div><span class="metric" id="practice-state">Ready</span><span class="metric-label">Free practice test</span><small>No AI requests, no charges</small></div></article>
+      <article class="mini-card"><div class="mini-icon amber">◇</div><div><span class="metric">Shadow</span><span class="metric-label">Investing safety</span><small>Paper and live orders off</small></div></article>
+    </section>
+
+    <section id="mission" class="workspace-section">
+      <div class="heading-row"><div><div class="eyebrow">START SOMETHING GREAT</div><h2>What can your AI team help with?</h2><p>Pick an activity, describe the goal, and choose how your agents should work.</p></div><span class="small-tag">01 · CREATE</span></div>
+      <div class="workflow-tiles" role="group" aria-label="Choose mission type">
+        <button class="tile selected" data-workflow="research" type="button"><span class="tile-art blue">⌕</span><strong>Explore &amp; Research</strong><small>Compare ideas, investigate topics, find gaps.</small><span class="tile-arrow">↗</span></button>
+        <button class="tile" data-workflow="investment" type="button"><span class="tile-art green">↗</span><strong>Investing Intelligence</strong><small>Research opportunities and risks. No orders.</small><span class="tile-arrow">↗</span></button>
+        <button class="tile" data-workflow="project" type="button"><span class="tile-art purple">▦</span><strong>Build a Project</strong><small>Plan, organize and solve complex challenges.</small><span class="tile-arrow">↗</span></button>
+      </div>
+
+      <div class="composer card">
+        <div class="section-head"><div><div class="eyebrow">YOUR MISSION</div><h3>Tell your team what to do</h3></div><span id="workflow-tag" class="status-pill neutral">Research</span></div>
+        <label class="field-label" for="topic">What would you like to explore?</label>
+        <textarea id="topic" maxlength="5000" placeholder="For example: Compare three clean-energy technologies and explain the biggest risks and opportunities…" rows="4"></textarea>
+        <div class="form-pair">
+          <div><label class="field-label" for="mode">How should they work?</label><select id="mode"><option value="team">Collaborate and cross-check</option><option value="independent">Give independent answers</option></select></div>
+          <div><label class="field-label" for="role">Primary perspective</label><select id="role"><option>Researcher</option><option>Skeptic</option><option>Engineer</option><option>Risk Auditor</option><option>Synthesizer</option></select></div>
+        </div>
+        <div class="separator"></div>
+        <div class="section-head compact"><div><h3>Choose your AI teammates</h3><p>Checked agents participate. A saved key does not guarantee live provider access.</p></div></div>
+        <div id="providers" class="providers"><p class="placeholder">Connect to see available teammates.</p></div>
+        <div class="mission-actions">
+          <button id="practice" type="button" class="btn primary wide">✦ Try a free practice mission</button>
+          <button id="launch" type="button" class="btn secondary wide" disabled>Run with real AI · locked</button>
+        </div>
+        <div id="usage" class="notice" role="status">Real AI calls are disabled until approved. Practice missions are simulated and do not contact AI providers.</div>
+      </div>
+    </section>
+
+    <div class="lower-grid">
+      <section id="finance-workflows" class="card finance-panel">
+        <div class="section-head"><div><div class="eyebrow">CONNECTED PLATFORM</div><h2>Investing system</h2><p>Read-only status of your existing GitHub research team and V4.3 pilot.</p></div><span class="status-pill safe">● Shadow only</span></div>
+        <div class="finance-summary"><span class="finance-icon">▧</span><div><strong>Existing automation is preserved</strong><small>Checking status does not run jobs or connect to a broker.</small></div></div>
+        <button id="check-finance" type="button" class="btn secondary">↻ Check workflow health</button>
+        <div id="finance-status" class="finance-status"><p class="placeholder">Connect your workspace to check the finance workflows.</p></div>
+      </section>
+
+      <section id="diagnostics" class="card diagnostics">
+        <div class="section-head"><div><div class="eyebrow">PEACE OF MIND</div><h2>System health</h2><p>A quick view of what is tested and what still needs attention.</p></div></div>
+        <div class="health-list" id="health-list">
+          <div><span>● Website</span><strong>Online</strong></div>
+          <div><span>● Workspace connection</span><strong id="health-auth">Sign in needed</strong></div>
+          <div><span>● AI provider keys</span><strong id="health-keys">Checking…</strong></div>
+          <div><span>● Real provider responses</span><strong id="health-live">Not tested</strong></div>
+          <div><span>● Brokerage orders</span><strong>Disabled</strong></div>
+        </div>
+        <button id="run-health" type="button" class="btn secondary">↻ Check system</button>
+        <div id="health-note" class="muted-note">No provider, brokerage or payment calls are made by this check.</div>
+      </section>
+    </div>
+
+    <section id="history-panel" class="card archive">
+      <div class="section-head"><div><div class="eyebrow">YOUR WORK</div><h2>Mission history &amp; answers</h2><p>Open past results or watch a running mission finish.</p></div><button class="btn secondary small" id="reload" type="button">↻ Refresh</button></div>
+      <div id="history" class="history-list"><p class="placeholder">Your missions will appear here after connecting.</p></div>
+      <div id="output" aria-live="polite"></div>
+    </section>
+
+    <section class="settings-tip card" aria-label="Provider setup">
+      <div class="section-head"><div><div class="eyebrow">SETTINGS &amp; CONNECTIONS</div><h2>Manage your AI keys</h2><p id="provider-guidance">Connect to see which providers have API keys saved.</p></div><a class="btn secondary small" href="https://dashboard.render.com/web/srv-dbaedtbncjis73d8hm60" target="_blank" rel="noopener noreferrer">Open Render ↗</a></div>
+      <div id="missing-keys" class="missing-keys"></div>
+      <p class="muted-note">Your credentials stay on Render. Never paste keys into chat. API usage remains disabled unless explicitly authorized. Free Render storage is not permanent; mission history may disappear after restarts.</p>
+    </section>
+
+    <footer class="footer">✦ NEXUS INTELLIGENCE STUDIO <span>Research only · No brokerage execution · Practice results are simulations</span></footer>
+  </main>
 </div>
-<div class="phase"><span>INDEPENDENT<br>ANALYSIS</span><b>→</b><span>PEER<br>REVIEW</span><b>→</b><span>TEAM<br>SYNTHESIS</span></div>
-<p class="fine">Provider accounts need authorized server-side API credentials. Chatbot app subscriptions do not automatically grant API access. Unsupported AI services cannot be connected without an available API or adapter.</p>
-</section></div>
-<section class="panel" id="finance-workflows">
-<div class="row"><div><div class="eyebrow">03 / EXISTING PLATFORM</div><h2>Investment intelligence workflows</h2>
-<p>Read-only connection to the existing V4.3 GitHub Actions. No finance engine is copied, triggered, or modified.</p></div>
-<button type="button" class="ghost" id="check-finance">Check workflow status</button></div>
-<div id="finance-status" class="notice" role="status">Connect and check workflow status to see the latest public GitHub Actions runs.</div>
-</section>
-<section class="panel"><div class="row"><div><div class="eyebrow">04 / INTELLIGENCE ARCHIVE</div><h2>Mission results and history</h2></div><button class="ghost" id="reload">Refresh tasks</button></div><div id="history" class="jobs"><div class="empty">Completed and running missions appear here.</div></div><div id="output" aria-live="polite"></div></section>
-<footer>AI Intelligence Studio · Evidence and provider responses are not independently source-verified · In-process task history is ephemeral on free hosting.</footer>
-</main></div>
-<script defer src="/static/app.js"></script></body></html>
+<nav class="mobile-bar" aria-label="Mobile navigation">
+  <button type="button" data-jump="home" class="mob-active"><span>⌂</span>Home</button>
+  <button type="button" data-jump="mission"><span>✦</span>Create</button>
+  <button type="button" data-jump="finance-workflows"><span>↗</span>Investing</button>
+  <button type="button" data-jump="history-panel"><span>◷</span>History</button>
+</nav>
+</body>
+</html>
