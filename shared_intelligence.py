@@ -33,7 +33,7 @@ MAX_RESEARCHES = 60
 MAX_BYTES = 1_500_000
 MAX_STOCKS_PER_RUN = 2  # Match daily AI Team budget; up to four second-pass provider calls.
 REPORT_FILE = 'shared-intelligence-report.json'
-ALLOWED_MODELS = ('OpenAI', 'Gemini', 'Claude')
+ALLOWED_MODELS = ('OpenAI', 'Gemini', 'Claude', 'Groq')
 
 
 class SharedIntelligenceError(RuntimeError):
@@ -88,6 +88,8 @@ def clean_report(row):
     reviews = row.get('reviews')
     if not isinstance(reviews, dict):
         raise SharedIntelligenceError('NO_INDEPENDENT_REVIEWS')
+    if set(reviews) - set(ALLOWED_MODELS):
+        raise SharedIntelligenceError('UNKNOWN_OR_UNSUPPORTED_REVIEWER')
     clean = {}
     for model in ALLOWED_MODELS:
         if model in reviews:
@@ -232,8 +234,21 @@ def memory_for(symbol, entries, now):
             age = (now - utc_time(e['as_of'])).total_seconds() / 86400
             if age < 0 or age > 14:
                 continue
+            # Preserve every participant's view in future prompts, rather than
+            # truncating the last reviewer from a concatenated shared_summary.
+            opinions = e.get('model_conclusions')
+            if isinstance(opinions, dict) and opinions:
+                bits = []
+                for model in ALLOWED_MODELS:
+                    obj = opinions.get(model)
+                    if isinstance(obj, dict):
+                        bits.append(f'{model}={str(obj.get("classification", "unknown"))[:15]}: '
+                                    f'{str(obj.get("summary", ""))[:85]}')
+                summary = ' | '.join(bits)[:500] if bits else str(e.get('shared_summary', ''))[:360]
+            else:
+                summary = str(e.get('shared_summary', ''))[:360]
             out.append({'as_of': e['as_of'], 'agreement': e.get('agreement', 'UNKNOWN'),
-                        'summary': str(e.get('shared_summary', ''))[:360]})
+                        'summary': summary})
         except (KeyError, SharedIntelligenceError):
             continue
     return out
@@ -287,16 +302,17 @@ def collaborate(row, entries, now):
         except (ai_team.ProviderReviewError, ValueError, TypeError, KeyError, URLError, TimeoutError):
             errors[model] = 'PROVIDER_OR_VALIDATION_FAILURE'
             print(f'V3.5 {symbol} {model} cross-review unavailable: PROVIDER_OR_VALIDATION_FAILURE')
-    if len(followups) < 2:
+    if len(followups) < 2 or set(followups) != set(originals):
         # Do not journal incomplete reviews or use them as consensus.
         # Expose the provider/status category without provider response text or secrets.
-        statuses = ','.join(f'{m}_{errors[m]}' for m in sorted(errors)) or 'UNKNOWN'
+        statuses = ','.join(f'{m}_{errors.get(m, "MISSING")}' for m in sorted(set(originals) - set(followups))) or 'UNKNOWN'
         raise SharedIntelligenceError('TWO_MODEL_CROSS_REVIEW_INCOMPLETE:' + statuses)
     agreement, changes = compare(originals, followups)
     shared_summary = ' | '.join(f'{m}: {r["summary"]}' for m, r in followups.items())[:900]
     return {
         'symbol': symbol, 'as_of': now.isoformat(),
         'original_reviews': originals, 'cross_reviews': followups,
+        'team_models': sorted(originals), 'team_status': 'COMPLETE',
         'shared_summary': shared_summary, 'agreement': agreement, 'changes': changes,
         'source_evidence': sources,
         'sources_verified_by_original_document': False,
@@ -319,6 +335,8 @@ def compact_journal_entry(result):
         'source_ai_run_id': result['source_ai_run_id'],
         'symbol': result['symbol'], 'as_of': result['as_of'],
         'agreement': result['agreement'],
+        'team_models': sorted(result['cross_reviews']),
+        'team_status': 'COMPLETE',
         'shared_summary': result['shared_summary'][:600],
         'model_conclusions': {
             name: {'classification': obj['classification'], 'confidence': obj['confidence'],
