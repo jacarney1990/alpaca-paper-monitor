@@ -5,11 +5,12 @@ import os
 import sqlite3
 import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
-from engine import PROVIDERS, ROLES, run_task, run_demo_task, status as provider_status
+from engine import PROVIDERS, ROLES, run_task, run_demo_task, check_provider_key, status as provider_status
 from finance_bridge import BridgeUnavailable, latest_workflows
 
 app = Flask(__name__)
@@ -124,6 +125,20 @@ def providers():
         return reject
     return jsonify({"providers": provider_status(),
                     "api_usage_enabled": limits()["api_usage_enabled"], "usage": limits()})
+
+@app.post("/api/providers/check")
+def check_providers():
+    """Owner-authenticated read-only provider metadata checks. No model tokens."""
+    reject = secured()
+    if reject is not None:
+        return reject
+    # Bound to four fixed provider hosts; no user-provided URL is accepted.
+    selected = list(PROVIDERS)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = dict(zip(selected, pool.map(check_provider_key, selected)))
+    return jsonify({"providers": results, "check_type": "credential_metadata_only",
+                    "model_inference_performed": False, "brokerage_orders": 0})
+
 
 @app.get("/api/finance/status")
 def finance_status():
