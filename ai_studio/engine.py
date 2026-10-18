@@ -164,3 +164,40 @@ def run_demo_task(topic, mode, specialization, providers, workflow):
             "mode": mode, "completed": len(first), "requested": len(first),
             "trade_execution": "DISABLED", "simulation": True,
             "notice": "PRACTICE ONLY: no AI providers, market-data feeds or brokerage accounts were contacted."}
+
+
+def check_provider_key(name):
+    """Validate access to a provider's model *metadata* endpoint, not inference.
+
+    This does not generate text or use billed model tokens. Do not show response
+    bodies or raw credentials even when providers reject the request.
+    """
+    if name not in PROVIDERS:
+        raise ProviderError("Unknown provider")
+    key_env, _, _ = PROVIDERS[name]
+    key = os.getenv(key_env, "").strip()
+    if not key:
+        return {"status": "missing", "detail": "No API key saved"}
+    if name == "OpenAI":
+        url = "https://api.openai.com/v1/models"
+        headers = {"Authorization": "Bearer " + key}
+    elif name == "Gemini":
+        url = "https://generativelanguage.googleapis.com/v1beta/models"
+        headers = {"x-goog-api-key": key}
+    elif name == "Groq":
+        url = "https://api.groq.com/openai/v1/models"
+        headers = {"Authorization": "Bearer " + key}
+    else:
+        url = "https://api.anthropic.com/v1/models"
+        headers = {"x-api-key": key, "anthropic-version": "2023-06-01"}
+    try:
+        reply = requests.get(url, headers=headers, timeout=9)
+        if reply.status_code == 200:
+            return {"status": "valid", "detail": "Credentials accepted by model-list endpoint"}
+        if reply.status_code in (400, 401, 403):
+            return {"status": "rejected", "detail": "Provider rejected access (HTTP %d)" % reply.status_code}
+        if reply.status_code == 429:
+            return {"status": "limited", "detail": "Provider rate-limited the metadata check"}
+        return {"status": "unavailable", "detail": "Metadata check returned HTTP %d" % reply.status_code}
+    except requests.RequestException:
+        return {"status": "unreachable", "detail": "Could not reach provider metadata endpoint"}
