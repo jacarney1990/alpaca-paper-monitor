@@ -16,6 +16,13 @@
 <p class="fine">Only real configured AI APIs are used. AI calls are OFF by default and may incur provider charges if separately enabled. No brokerage orders or external project changes are made.</p>
 </section>
 <section class="panel"><div class="eyebrow">02 / YOUR AI TEAM</div><h2>Provider network <small id="count">Not connected</small></h2><div id="providers" class="providers"><div class="empty">Connect your private token to inspect the AI network.</div></div><div id="usage" class="notice"></div>
+<div class="setup panel-mini" id="provider-setup" aria-live="polite">
+<strong>Direct provider setup (safe mode)</strong>
+<p id="provider-guidance">Connect your private Studio access token above to check which API credentials are missing.</p>
+<div id="missing-keys" class="missing-keys"></div>
+<a class="setup-link" href="https://dashboard.render.com/web/srv-dbaedtbncjis73d8hm60" target="_blank" rel="noopener noreferrer">Open Studio settings on Render ↗</a>
+<p class="fine">Choose <b>Environment</b> in Render. Add the missing API key names, using secret values from your own records. Save without sharing keys in chat. Existing GitHub Actions secrets and a different Render service do not automatically transfer. API usage remains disabled unless explicitly authorized.</p>
+</div>
 <div class="phase"><span>INDEPENDENT<br>ANALYSIS</span><b>→</b><span>PEER<br>REVIEW</span><b>→</b><span>TEAM<br>SYNTHESIS</span></div>
 <p class="fine">Provider accounts need authorized server-side API credentials. Chatbot app subscriptions do not automatically grant API access. Unsupported AI services cannot be connected without an available API or adapter.</p>
 </section></div>
