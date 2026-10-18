@@ -77,6 +77,11 @@
         <div class="separator"></div>
         <div class="section-head compact"><div><h3>Choose your AI teammates</h3><p>Checked agents participate. A saved key does not guarantee live provider access.</p></div></div>
         <div id="providers" class="providers"><p class="placeholder">Connect to see available teammates.</p></div>
+        <div class="key-test">
+          <button id="verify-keys" class="btn secondary small" type="button">✓ Verify saved keys</button>
+          <span>Checks each provider's model list without generating AI text.</span>
+        </div>
+        <div id="verify-results" class="verify-results" role="status" aria-live="polite"></div>
         <div class="mission-actions">
           <button id="practice" type="button" class="btn primary wide">✦ Try a free practice mission</button>
           <button id="launch" type="button" class="btn secondary wide" disabled>Run with real AI · locked</button>
