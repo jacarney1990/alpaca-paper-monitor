@@ -3,9 +3,9 @@ name: Investment V3.5 Shared AI Intelligence (research only)
 on:
   workflow_dispatch:
   schedule:
-    # Starts ~35 minutes after AI Team's 00:39/04:39/... UTC schedule.
+    # Runs once daily after AI Team's 21:39 UTC batch.
     # GitHub scheduled runs may be delayed or omitted.
-    - cron: '14 1-23/4 * * *'
+    - cron: '39 22 * * *'
 
 permissions:
   contents: read
