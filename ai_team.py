@@ -45,6 +45,10 @@ class ProviderReviewError(RuntimeError):
     """Sanitized provider diagnostic. Never contains keys or generated content."""
 
 
+class ReviewValidationError(ValueError):
+    """Machine-readable review failure code; never contains model-generated text."""
+
+
 RETRYABLE_HTTP_CODES = {429, 500, 502, 503, 504}
 
 
@@ -191,7 +195,7 @@ def ask_provider(name, prompt):
                     'responseJsonSchema': SCHEMA,
                     'maxOutputTokens': token_limit,
                 },
-            })
+            }, retries=0)  # Gemini 503/429 defer; never burn three daily slots on one outage.
             raw = '\n'.join(part.get('text', '') for c in response.get('candidates', [])
                             for part in c.get('content', {}).get('parts', []) if part.get('text'))
         elif name == 'Groq':
@@ -223,21 +227,21 @@ def ask_provider(name, prompt):
 
 def validate_review(obj, allowed_ids):
     if not isinstance(obj, dict) or set(obj) != set(SCHEMA['required']):
-        raise ValueError('Invalid fields')
+        raise ReviewValidationError('INVALID_FIELDS')
     if obj['classification'] not in {'risk', 'opportunity', 'watch', 'uncertain'}:
-        raise ValueError('Invalid classification')
+        raise ReviewValidationError('INVALID_CLASSIFICATION')
     conf = obj['confidence']
     if type(conf) is not int or not 0 <= conf <= 100:
-        raise ValueError('Confidence outside 0..100')
+        raise ReviewValidationError('INVALID_CONFIDENCE')
     if not isinstance(obj['summary'], str) or len(obj['summary']) > 280:
-        raise ValueError('Invalid summary')
+        raise ReviewValidationError('INVALID_SUMMARY')
     if not isinstance(obj['main_risk'], str) or len(obj['main_risk']) > 180:
-        raise ValueError('Invalid main risk')
+        raise ReviewValidationError('INVALID_MAIN_RISK')
     ids = obj['evidence_ids']
     if not isinstance(ids, list) or not ids or len(ids) > 12 or any(
         not isinstance(x, str) or x not in allowed_ids for x in ids
     ):
-        raise ValueError('Must cite the provided source IDs')
+        raise ReviewValidationError('INVALID_EVIDENCE_IDS')
     return obj
 
 
@@ -326,21 +330,27 @@ def agent_report(symbol, sources, now):
             'analyst_instruction': 'This is independent non-execution research; classify evidence, not stocks.'}
     prompt = json.dumps(data, separators=(',', ':'))
     reviews = {}
+    errors = {}
     with ThreadPoolExecutor(max_workers=min(4, len(participants))) as pool:
         futures = {pool.submit(ask_provider, name, prompt): name for name in participants}
         for f in as_completed(futures):
             name = futures[f]
             try:
                 reviews[name] = validate_review(f.result(), {s['id'] for s in samples})
-            except ProviderReviewError as exc:
-                print(f'{name} review unavailable for {symbol}: {exc}')
+            except (ProviderReviewError, ReviewValidationError) as exc:
+                # Only controlled error codes generated locally, never raw provider text.
+                errors[name] = str(exc)
+                print(f'{name} review unavailable for {symbol}: {errors[name]}')
             except HTTPError as exc:
-                print(f'{name} review unavailable for {symbol}: HTTP {exc.code}')
+                errors[name] = f'HTTP_{exc.code}'
+                print(f'{name} review unavailable for {symbol}: {errors[name]}')
             except Exception as exc:
-                print(f'{name} review unavailable for {symbol}: {type(exc).__name__}')
+                errors[name] = type(exc).__name__
+                print(f'{name} review unavailable for {symbol}: {errors[name]}')
     return {'symbol': symbol, 'sources': samples, 'snapshot': market,
             'expected_models': participants,
             'missing_models': sorted(set(participants) - set(reviews)),
+            'provider_errors': errors,
             'team_status': 'COMPLETE' if set(reviews) == set(participants) else 'INCOMPLETE',
             'reviews': reviews, 'consensus': consensus(reviews, samples),
             'trade_execution': 'DISABLED'}
@@ -408,7 +418,10 @@ def main():
     # Emit machine-readable audit artifact. No secrets, no orders, no balances.
     with open('ai-team-report.json', 'w', encoding='utf-8') as handle:
         json.dump({'as_of': now.isoformat(), 'source_health': health, 'reports': reports,
-                   'execution': 'DISABLED', 'portfolio_connected': False}, handle, indent=2)
+                   'execution': 'DISABLED', 'portfolio_connected': False,
+                   'research_status': ('COMPLETE' if all(r['team_status'] == 'COMPLETE' for r in reports)
+                                       else 'PARTIAL' if any(r['team_status'] == 'COMPLETE' for r in reports)
+                                       else 'INCOMPLETE')}, handle, indent=2)
     # Mark a source processed only after ALL configured participants have reviewed it.
     # A provider outage is not silently represented as a complete team result.
     completed = [r for r in reports if r['team_status'] == 'COMPLETE' and len(r['reviews']) >= 2]
@@ -427,7 +440,12 @@ def main():
         save_ai_state(repo, issue_no, {'processed': sorted(seen)[-1200:], 'last_sent': now.isoformat()})
     if incomplete:
         print('Incomplete configured-team reviews (not marked processed): ' + ', '.join(incomplete))
-        raise RuntimeError('At least one ticker lacks a fully validated team review; see sanitized provider errors above')
+        if completed:
+            # A partial SUCCESS is safe: V3.5 accepts ONLY rows marked COMPLETE.
+            # Fully reviewed stocks reach shared memory; missing peers remain pending.
+            print('Research status: PARTIAL; only complete three-model records are eligible for shared memory.')
+        else:
+            raise RuntimeError('No ticker has a fully validated team review; see sanitized provider errors above')
 
 
 if __name__ == '__main__':
