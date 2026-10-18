@@ -156,3 +156,24 @@ document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('[data-jump]').forEach(x=>x.classList.toggle('mob-active',x===b));
  jump(b.dataset.jump);
 });
+
+async function verifyKeys(){
+ const button=$('verify-keys');button.disabled=true;
+ $('verify-results').textContent='Checking provider authentication safely…';
+ try{
+  const data=await api('/api/providers/check',{method:'POST'});
+  $('verify-results').replaceChildren();
+  for(const [name,check] of Object.entries(data.providers)){
+   const item=document.createElement('div');item.className='verify-row';
+   const label=document.createElement('strong');label.textContent=name;
+   const status=document.createElement('span');status.textContent=check.status+' · '+check.detail;
+   status.className=check.status==='valid'?'verified':'not-verified';
+   item.append(label,status);$('verify-results').appendChild(item);
+  }
+  tell('API key authentication checked. This does not test live AI answers or incur model-generation charges.');
+ }catch(error){
+  $('verify-results').textContent=error.message;
+  tell(error.message,true);
+ }finally{button.disabled=false;}
+}
+$('verify-keys').onclick=verifyKeys;
