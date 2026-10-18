@@ -32,6 +32,7 @@ async function connect(){
   $('access-caption').textContent='Secure workspace connected. Your access code stays in this page only.';
   $('health-auth').textContent='Connected';
   tell('Connected! Your team and tools are ready for practice missions.');
+  loadFinance().catch(()=>{});
  }catch(e){
   token='';$('access-state').textContent='● Not connected';$('access-state').className='status-pill neutral';
   $('health-auth').textContent='Not connected';
