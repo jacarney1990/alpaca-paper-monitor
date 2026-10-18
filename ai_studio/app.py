@@ -10,6 +10,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 from engine import PROVIDERS, ROLES, run_task, status as provider_status
+from finance_bridge import BridgeUnavailable, latest_workflows
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 50000
@@ -69,6 +70,16 @@ def providers():
         return reject
     return jsonify({"providers": provider_status(),
                     "api_usage_enabled": os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true"})
+
+@app.get("/api/finance/status")
+def finance_status():
+    reject = secured()
+    if reject is not None:
+        return reject
+    try:
+        return jsonify(latest_workflows())
+    except BridgeUnavailable as exc:
+        return jsonify({"error": str(exc)}), 503
 
 @app.get("/api/jobs")
 def jobs():
