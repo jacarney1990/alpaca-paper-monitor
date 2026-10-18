@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
-from engine import PROVIDERS, ROLES, run_task, status as provider_status
+from engine import PROVIDERS, ROLES, run_task, run_demo_task, status as provider_status
 from finance_bridge import BridgeUnavailable, latest_workflows
 
 app = Flask(__name__)
@@ -29,6 +29,11 @@ def initialize():
                    "(id TEXT PRIMARY KEY, created TEXT NOT NULL, topic TEXT NOT NULL, "
                    "workflow TEXT NOT NULL, mode TEXT NOT NULL, role TEXT NOT NULL, "
                    "providers TEXT NOT NULL, status TEXT NOT NULL, output TEXT)")
+        db.execute("CREATE TABLE IF NOT EXISTS call_reservations "
+                   "(day TEXT PRIMARY KEY, reserved INTEGER NOT NULL)")
+        # Any job still running at service startup cannot be resumed by the in-process worker.
+        db.execute("UPDATE jobs SET status='interrupted', output=? WHERE status='running'",
+                   (json.dumps({"error": "Service restarted before completion. Re-run this mission."}),))
 initialize()
 
 # Deployment diagnostics show only which credential NAMES are configured.
@@ -72,13 +77,53 @@ def health():
                     "trade_execution": "DISABLED",
                     "api_usage_enabled": os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true"})
 
+def limits():
+    raw = os.getenv("STUDIO_DAILY_CALL_CAP", "0")
+    try:
+        cap = int(raw)
+    except ValueError:
+        cap = 0
+    cap = max(0, min(cap, 100))
+    today = datetime.now(timezone.utc).date().isoformat()
+    with connection() as db:
+        row = db.execute("SELECT reserved FROM call_reservations WHERE day=?", (today,)).fetchone()
+    used = row["reserved"] if row else 0
+    return {"daily_limit": cap, "reserved_today": used, "remaining": max(0, cap-used),
+            "api_usage_enabled": os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true"}
+
+
+@app.get("/api/self-test")
+def self_test():
+    reject = secured()
+    if reject is not None:
+        return reject
+    try:
+        with connection() as db:
+            db.execute("SELECT 1").fetchone()
+        storage = "available"
+    except sqlite3.Error:
+        storage = "unavailable"
+    configured = sorted(name for name, value in provider_status().items() if value["configured"])
+    return jsonify({
+        "service": "online", "storage": storage,
+        "configured_providers": configured,
+        "provider_authentication": "not tested",
+        "live_model_calls_tested": False,
+        "practice_mode": "available",
+        "finance_bridge": "read-only",
+        "trade_execution": "DISABLED",
+        "usage": limits(),
+        "persistence": "ephemeral on free Render hosting; jobs may not survive restarts",
+    })
+
+
 @app.get("/api/providers")
 def providers():
     reject = secured()
     if reject is not None:
         return reject
     return jsonify({"providers": provider_status(),
-                    "api_usage_enabled": os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true"})
+                    "api_usage_enabled": limits()["api_usage_enabled"], "usage": limits()})
 
 @app.get("/api/finance/status")
 def finance_status():
@@ -115,9 +160,10 @@ def job(job_id):
     result["output"] = json.loads(result["output"]) if result["output"] else None
     return jsonify(result)
 
-def worker(job_id, topic, mode, role, selected, workflow):
+def worker(job_id, topic, mode, role, selected, workflow, demo=False):
     try:
-        result = run_task(topic, mode, role, selected, workflow)
+        result = (run_demo_task(topic, mode, role, selected, workflow) if demo
+                  else run_task(topic, mode, role, selected, workflow))
         outcome = "complete" if result["completed"] else "failed"
     except Exception as exc:
         # Do not return/log provider body, keys or user task content in diagnostics.
@@ -140,6 +186,9 @@ def create_job():
     role = data.get("role", "Researcher")
     selected = data.get("providers", [])
     workflow = data.get("workflow", "research")
+    demo = data.get("demo", False)
+    if not isinstance(demo, bool):
+        return jsonify({"error": "Invalid practice mode"}), 400
     if not isinstance(topic, str) or not 3 <= len(topic.strip()) <= 5000:
         return jsonify({"error": "Task must contain 3–5000 characters"}), 400
     if mode not in ("independent", "team") or role not in ROLES or workflow not in (
@@ -149,24 +198,36 @@ def create_job():
             any(not isinstance(p, str) or p not in PROVIDERS for p in selected) or
             len(set(selected)) != len(selected)):
         return jsonify({"error": "Select one to four distinct AI providers"}), 400
-    current = provider_status()
-    if any(not current[p]["configured"] for p in selected):
-        return jsonify({"error": "Selected provider is not configured on the server."}), 422
-    if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true":
-        return jsonify({"error": "AI calls disabled until explicitly authorized in Render. "
-                                  "No provider requests have been sent."}), 403
+    if not demo:
+        current = provider_status()
+        if any(not current[p]["configured"] for p in selected):
+            return jsonify({"error": "Selected provider key is not configured on the server."}), 422
+        if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true":
+            return jsonify({"error": "Live AI calls are off. Try a FREE practice mission; no provider requests were sent."}), 403
+    # Reserve the full worst-case number of provider requests before launch.
+    # Reserve even failed calls; never retry a run automatically.
+    required = 0 if demo else (len(selected) * 2 + 1 if mode == "team" and len(selected) > 1 else len(selected))
+    day = datetime.now(timezone.utc).date().isoformat()
     with _LOCK, connection() as db:
         count = db.execute("SELECT count(*) FROM jobs WHERE status='running'").fetchone()[0]
         if count >= 2:
-            return jsonify({"error": "Two missions are already running."}), 429
+            return jsonify({"error": "Two missions are already running. Try again when one finishes."}), 429
+        if not demo:
+            budget = limits()
+            if budget["daily_limit"] == 0 or budget["remaining"] < required:
+                return jsonify({"error": "Live mission blocked by the daily AI-call safety limit. "
+                                          "Use FREE Practice, or explicitly configure and approve a budget."}), 403
+            db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,?) "
+                       "ON CONFLICT(day) DO UPDATE SET reserved=reserved+excluded.reserved",
+                       (day, required))
         job_id = str(uuid.uuid4())
         db.execute("INSERT INTO jobs VALUES(?,?,?,?,?,?,?,?,?)",
                    (job_id, datetime.now(timezone.utc).isoformat(), topic.strip(), workflow,
                     mode, role, json.dumps(selected), "running", None))
     threading.Thread(target=worker,
-                     args=(job_id, topic.strip(), mode, role, selected, workflow),
+                     args=(job_id, topic.strip(), mode, role, selected, workflow, demo),
                      daemon=True).start()
-    return jsonify({"id": job_id, "status": "running"}), 202
+    return jsonify({"id": job_id, "status": "running", "practice": demo, "reserved_calls": required}), 202
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
