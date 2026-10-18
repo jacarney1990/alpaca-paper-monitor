@@ -94,6 +94,30 @@ class StudioTests(unittest.TestCase):
             self.assertEqual(len(result["output"]["cross_review"]), 3)
             self.assertIn("PRACTICE EXAMPLE", result["output"]["synthesis"])
 
+    def test_opt_in_deployed_safe_check_uses_practice_and_metadata_only(self):
+        import app as studio_app
+        responses = {"OpenAI": {"status": "valid"},
+                     "Gemini": {"status": "valid"},
+                     "Groq": {"status": "limited"},
+                     "Claude": {"status": "missing"}}
+        with patch.dict(os.environ, {"STUDIO_RUN_SAFE_TEST": "true",
+                                     "STUDIO_ALLOW_API_USAGE": "false"}):
+            with patch.object(studio_app, "check_provider_key",
+                              side_effect=lambda name: responses[name]) as checked:
+                with patch.object(engine, "invoke",
+                                  side_effect=AssertionError("no inference permitted")):
+                    with self.assertLogs(studio_app.app.logger, level="WARNING") as logs:
+                        studio_app.run_one_time_safe_test()
+        summary = " ".join(logs.output)
+        self.assertIn("practice=pass", summary)
+        self.assertIn("OpenAI=valid", summary)
+        self.assertIn("Groq=limited", summary)
+        self.assertIn("ai_inference_calls=0", summary)
+        self.assertIn("brokerage_orders=0", summary)
+        self.assertEqual(checked.call_count, 4)
+        recorded = self.client.get("/api/jobs", headers=self.headers).json
+        self.assertTrue(any(x["topic"].startswith("Nexus system test:") for x in recorded))
+
     def test_alpaca_monitor_is_accessible_from_studio_portal(self):
         page = self.client.get("/").get_data(as_text=True)
         self.assertIn("https://alpaca-paper-monitor-zgv9.onrender.com", page)
