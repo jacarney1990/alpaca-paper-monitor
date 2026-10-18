@@ -20,6 +20,7 @@ from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen, build_opener
 
 import ai_team
+import gemini_budget
 import intelligence as base
 import ops_supervisor as ops
 
@@ -30,7 +31,7 @@ REPORT_NAME = 'ai-team-report.json'
 MAX_REPORT_AGE_HOURS = 72
 MAX_RESEARCHES = 60
 MAX_BYTES = 1_500_000
-MAX_STOCKS_PER_RUN = 3  # Match AI Team maximum; up to 6 cross-review API calls per new audit.
+MAX_STOCKS_PER_RUN = 2  # Match daily AI Team budget; up to four second-pass provider calls.
 REPORT_FILE = 'shared-intelligence-report.json'
 ALLOWED_MODELS = ('OpenAI', 'Gemini', 'Claude')
 
@@ -280,6 +281,9 @@ def collaborate(row, entries, now):
             errors[model] = f'HTTP_{exc.code}'
             # Diagnostics contain only symbol, model name and HTTP status; never response bodies.
             print(f'V3.5 {symbol} {model} cross-review unavailable: HTTP_{exc.code}')
+        except gemini_budget.GeminiBudgetError as exc:
+            errors[model] = str(exc)
+            print(f'V3.5 {symbol} {model} cross-review unavailable: {exc}')
         except (ai_team.ProviderReviewError, ValueError, TypeError, KeyError, URLError, TimeoutError):
             errors[model] = 'PROVIDER_OR_VALIDATION_FAILURE'
             print(f'V3.5 {symbol} {model} cross-review unavailable: PROVIDER_OR_VALIDATION_FAILURE')
