@@ -1,0 +1,43 @@
+name: Investment V3.4 Source and Quote Assurance (NO orders)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekday mid-session read-only quote and source audit. GitHub schedules are best effort.
+    - cron: '37 19 * * 1-5'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: investment-v34-readonly
+  cancel-in-progress: false
+
+jobs:
+  assurance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify V3.4 safety and source validation tests
+        run: python -m unittest discover -s tests -p 'test_v34_assurance.py' -v
+      - name: Audit official SEC filing provenance, quotes and performance (GET only)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+        run: python v34_assurance.py
+      - name: Preserve V3.4 read-only report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v34-assurance-${{ github.run_id }}
+          path: v34-assurance.json
+          if-no-files-found: warn
+          retention-days: 30
