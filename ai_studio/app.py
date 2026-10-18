@@ -31,6 +31,15 @@ def initialize():
                    "providers TEXT NOT NULL, status TEXT NOT NULL, output TEXT)")
 initialize()
 
+# Deployment diagnostics show only which credential NAMES are configured.
+# Never print secret values, user prompts, or provider response bodies.
+_present_names = sorted(name for name, info in provider_status().items() if info["configured"])
+app.logger.warning(
+    "STUDIO_PROVIDER_KEY_PRESENCE providers=%s; api_usage_enabled=%s; api_calls_performed=false",
+    ",".join(_present_names) or "none",
+    os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true",
+)
+
 def authorized():
     expected = os.getenv("STUDIO_ACCESS_TOKEN", "")
     supplied = request.headers.get("X-Studio-Token", "")
