@@ -274,6 +274,33 @@ class StudioTests(unittest.TestCase):
         self.assertIn("max_requests=3", " ".join(logs.output))
         self.assertIn("already started", " ".join(logs.output))
 
+    def test_final_gemini_only_smoke_is_one_request(self):
+        import app as studio_app
+        payload = {"initial": [{"provider": "Gemini", "status": "complete",
+                                "answer": "Three checks and a limitation."}],
+                   "cross_review": [], "synthesis": "", "completed": 1,
+                   "requested": 1, "trade_execution": "DISABLED"}
+        def inline(*, target, args, daemon):
+            class Fake:
+                def start(self):
+                    target(*args)
+            return Fake()
+        with patch.dict(os.environ, {"STUDIO_RUN_LIVE_SMOKE": "gemini_only",
+                                     "STUDIO_ALLOW_API_USAGE": "false",
+                                     "STUDIO_MAX_OUTPUT_TOKENS": "300",
+                                     "GEMINI_API_KEY": "dummy-local"}):
+            with patch("app.run_task", return_value=payload) as model:
+                with patch("app.threading.Thread", side_effect=inline):
+                    with self.assertLogs(studio_app.app.logger, level="WARNING") as logs:
+                        studio_app.start_live_smoke_if_requested()
+                        studio_app.start_live_smoke_if_requested()
+        self.assertEqual(model.call_count, 1)
+        self.assertEqual(model.call_args.args[1], "independent")
+        self.assertEqual(model.call_args.args[3], ["Gemini"])
+        self.assertIn("max_requests=1", " ".join(logs.output))
+        self.assertIn("result=PASS", " ".join(logs.output))
+        self.assertIn("already started", " ".join(logs.output))
+
     def test_live_calls_blocked_even_if_usage_toggle_on_without_cap(self):
         request = {"topic": "Real investment research",
                    "mode": "team", "workflow": "investment", "role": "Risk Auditor",
