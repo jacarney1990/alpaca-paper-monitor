@@ -9,7 +9,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 import intelligence as base
@@ -58,8 +58,13 @@ def json_http(url, payload=None, headers=None, timeout=35, retries=2):
                            'Accept': 'application/json',
                            **({'Content-Type': 'application/json'} if raw is not None else {}),
                            **(headers or {})})
+    budgeted_gemini = (urlparse(url).hostname == 'generativelanguage.googleapis.com'
+                       and bool(os.environ.get('GEMINI_DAILY_REQUEST_CAP')))
     for attempt in range(retries + 1):
         try:
+            if budgeted_gemini:
+                import gemini_budget
+                gemini_budget.reserve()  # Counts EVERY attempted request, including retries.
             with urlopen(req, timeout=timeout) as resp:
                 try:
                     return json.load(resp)
@@ -67,6 +72,10 @@ def json_http(url, payload=None, headers=None, timeout=35, retries=2):
                     # A bad 200 response should not trigger a flood of requests.
                     raise ProviderReviewError('HTTP response was not JSON') from exc
         except HTTPError as exc:
+            # On the free tier, a 429 may mean the entire day's quota was reached.
+            # Retrying it immediately only burns local request reservations.
+            if budgeted_gemini and exc.code == 429:
+                raise
             if exc.code not in RETRYABLE_HTTP_CODES or attempt >= retries:
                 raise
             # Honor short provider Retry-After values. Long windows are deferred
