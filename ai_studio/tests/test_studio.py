@@ -59,6 +59,16 @@ class StudioTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/providers").status_code, 401)
         self.assertEqual(self.client.get("/api/providers", headers=self.headers).status_code, 200)
 
+    def test_finance_status_is_read_only_and_authenticated(self):
+        self.assertEqual(self.client.get("/api/finance/status").status_code, 401)
+        snapshot = {"workflows": [{"name": "V4.3 Paper Shadow Pilot", "status": "completed",
+                                    "conclusion": "success", "updated": "",
+                                    "url": ""}], "brokerage_execution": "DISABLED_IN_STUDIO"}
+        with patch("app.latest_workflows", return_value=snapshot):
+            response = self.client.get("/api/finance/status", headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["brokerage_execution"], "DISABLED_IN_STUDIO")
+
     def test_invalid_input_is_rejected(self):
         data = {"topic": "x", "mode": "team", "workflow": "research",
                 "role": "Researcher", "providers": ["OpenAI"]}
