@@ -49,6 +49,17 @@ class StudioTests(unittest.TestCase):
         self.assertIn("chooseWorkflow('investment')", script)
         self.assertIn("chooseWorkflow('project')", script)
 
+    def test_setup_panel_lists_missing_provider_names_safely(self):
+        response = self.client.get("/")
+        markup = response.get_data(as_text=True)
+        self.assertIn('id="missing-keys"', markup)
+        self.assertIn('id="provider-guidance"', markup)
+        self.assertIn('https://dashboard.render.com/web/srv-dbaedtbncjis73d8hm60', markup)
+        script = self.client.get("/static/app.js").get_data(as_text=True)
+        for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY"):
+            self.assertIn(key, script)
+        self.assertIn("existing GitHub finance workflow status", script)
+
     def test_health_has_no_trade_execution(self):
         data = self.client.get("/health").json
         self.assertEqual(data["status"], "ok")
