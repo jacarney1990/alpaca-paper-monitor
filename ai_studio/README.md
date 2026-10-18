@@ -20,3 +20,9 @@ To enable a direct AI provider, open [AI Studio's Render settings](https://dashb
 ## Verifying the API keys without generated tokens
 
 The authenticated **Verify saved keys** button calls only the fixed official API provider model-metadata endpoints; it does not ask a model to generate an answer or submit trades. A successful metadata response confirms that credentials were accepted for model-list access, not that a particular model can complete a mission or that provider quotas, billing, and network latency permit inference. Live missions remain denied unless both `STUDIO_ALLOW_API_USAGE=true` and a positive `STUDIO_DAILY_CALL_CAP` are separately configured after explicit approval. Every attempted live mission reserves a worst-case number of requests up front. The daily quota is stored in ephemeral SQLite on Render's free plan and cannot guarantee a durable per-day cap across restarts; move to persistent storage before authorizing paid API use.
+
+## October 2026 model migration and live-test safeguards
+
+Gemini 2.5 Flash may not be accessible to newly provisioned Google AI Studio API projects. The default is now `gemini-3.5-flash-lite`. Groq retired `llama-3.3-70b-versatile` on August 16, 2026; the default is now `qwen/qwen3.8-27b`. You may override defaults explicitly with `GEMINI_MODEL` and `GROQ_MODEL`. Metadata-only checks show whether a selected model appears in the provider catalog, but are not proof that inference succeeds or meets budget/quota.
+
+OpenAI HTTP 429 can mean prepaid credit, project/organization spend caps, or a temporary rate limit. This integration never purchases API credits or enables ongoing requests automatically. Check the API organization billing and limit settings separately from your ChatGPT subscription. Production AI requests remain off by default; only a separately approved, bounded diagnostic can contact real models without enabling the UI's live AI option.
