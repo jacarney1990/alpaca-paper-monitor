@@ -314,6 +314,26 @@ class StudioTests(unittest.TestCase):
         self.assertNotIn("dummy-key", url)
         self.assertEqual(http.call_args.kwargs["timeout"], 9)
 
+    def test_new_gemini_and_groq_models_are_listed_in_safe_metadata(self):
+        scenarios = [
+            ("Gemini", "GEMINI_API_KEY", "GEMINI_MODEL", "gemini-3.5-flash-lite",
+             {"models": [{"name": "models/gemini-3.5-flash-lite"}]}),
+            ("Groq", "GROQ_API_KEY", "GROQ_MODEL", "qwen/qwen3.8-27b",
+             {"data": [{"id": "qwen/qwen3.8-27b"}]})
+        ]
+        for name, credential, model_env, model_id, catalog in scenarios:
+            with self.subTest(name=name):
+                with patch.dict(os.environ, {credential: "fake", model_env: model_id}):
+                    with patch.object(engine.requests, "get") as req:
+                        req.return_value.status_code = 200
+                        req.return_value.json.return_value = catalog
+                        checked = engine.check_provider_key(name)
+                self.assertEqual(checked["status"], "valid")
+                self.assertTrue(checked["model_listed"])
+                self.assertIn("model listed", checked["detail"])
+        self.assertEqual(engine.PROVIDERS["Gemini"][2], "gemini-3.5-flash-lite")
+        self.assertEqual(engine.PROVIDERS["Groq"][2], "qwen/qwen3.8-27b")
+
     def test_no_simulated_labels_on_real_engine(self):
         with patch.object(engine, "invoke", return_value="Stubbed independent answer"):
             result = engine.run_task("Check engineering assumptions", "independent",
