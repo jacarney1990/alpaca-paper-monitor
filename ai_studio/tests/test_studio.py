@@ -61,6 +61,39 @@ class StudioTests(unittest.TestCase):
         self.assertIn("loadFinance", script)
         self.assertIn("Practice missions", script)
 
+    def test_nexus_dom_ids_match_external_js(self):
+        import re
+        markup = self.client.get("/").get_data(as_text=True)
+        script = self.client.get("/static/app.js").get_data(as_text=True)
+        known_ids = set(re.findall(r'id="([^"]+)"', markup))
+        referenced_ids = set(re.findall(r"\$\('([^']+)'\)", script))
+        self.assertEqual(referenced_ids - known_ids, set(),
+                         "Frontend references IDs missing from rendered HTML")
+        self.assertIn("currentWorkflow=workflow", script)
+        self.assertIn("workflow:currentWorkflow", script)
+        self.assertNotIn("$('workflow')", script)
+
+    def test_practice_mission_runs_without_provider_calls(self):
+        import time
+        request = {"topic": "Explain a basic research plan", "mode": "team",
+                   "workflow": "research", "role": "Researcher",
+                   "providers": ["OpenAI", "Gemini", "Groq"], "demo": True}
+        with patch.object(engine, "invoke", side_effect=AssertionError("No paid calls allowed")):
+            response = self.client.post("/api/jobs", json=request, headers=self.headers)
+            self.assertEqual(response.status_code, 202)
+            self.assertEqual(response.json["reserved_calls"], 0)
+            mission_id = response.json["id"]
+            for _ in range(25):
+                result = self.client.get("/api/jobs/" + mission_id, headers=self.headers).json
+                if result["status"] != "running":
+                    break
+                time.sleep(0.04)
+            self.assertEqual(result["status"], "complete")
+            self.assertTrue(result["output"]["simulation"])
+            self.assertEqual(len(result["output"]["initial"]), 3)
+            self.assertEqual(len(result["output"]["cross_review"]), 3)
+            self.assertIn("PRACTICE EXAMPLE", result["output"]["synthesis"])
+
     def test_health_has_no_trade_execution(self):
         data = self.client.get("/health").json
         self.assertEqual(data["status"], "ok")
