@@ -31,7 +31,7 @@ REPORT_NAME = 'ai-team-report.json'
 MAX_REPORT_AGE_HOURS = 72
 MAX_RESEARCHES = 60
 MAX_BYTES = 1_500_000
-MAX_STOCKS_PER_RUN = 2  # Match daily AI Team budget; up to four second-pass provider calls.
+MAX_STOCKS_PER_RUN = 1  # Conservative free-tier budget; one complete team cross-review per run.
 REPORT_FILE = 'shared-intelligence-report.json'
 ALLOWED_MODELS = ('OpenAI', 'Gemini', 'Claude', 'Groq')
 
@@ -99,6 +99,14 @@ def clean_report(row):
                 raise SharedIntelligenceError('INVALID_MODEL_REVIEW') from None
     if len(clean) < 2:
         raise SharedIntelligenceError('FEWER_THAN_TWO_INDEPENDENT_REVIEWS')
+    # Reject any attempt to pass a subset of the configured original team as complete.
+    if row.get('team_status') not in (None, 'COMPLETE'):
+        raise SharedIntelligenceError('INCOMPLETE_SOURCE_TEAM_REVIEW')
+    expected = row.get('expected_models')
+    if expected is not None and (not isinstance(expected, list) or
+                                 any(x not in ALLOWED_MODELS for x in expected) or
+                                 len(expected) != len(set(expected)) or set(expected) != set(clean)):
+        raise SharedIntelligenceError('EXPECTED_TEAM_NOT_COMPLETE')
     return {'symbol': symbol, 'sources': sources, 'reviews': clean}
 
 
@@ -360,13 +368,19 @@ def run(repo, token, now):
     if not rows:
         return {'status': 'NO_RECENT_RESEARCH_ARTIFACT', 'source_ai_run_id': run_id, 'entries_written': 0}
     pending = []
+    deferred = []
     for row in rows:
+        if row.get('team_status') == 'INCOMPLETE':
+            # Persist none of an incomplete ticker; next AI run can retry its leads.
+            deferred.append(row.get('symbol', 'UNKNOWN'))
+            continue
         clean = clean_report(row)
         stamp = f'{run_id}:{clean["symbol"]}'
         if all(e.get('research_key') != stamp for e in existing if isinstance(e, dict)):
             pending.append((stamp, row))
     if not pending:
-        return {'status': 'NO_NEW_RESEARCH_TO_CROSS_REVIEW', 'source_ai_run_id': run_id, 'entries_written': 0}
+        return {'status': 'NO_NEW_RESEARCH_TO_CROSS_REVIEW', 'source_ai_run_id': run_id,
+                'deferred_incomplete_symbols': deferred, 'entries_written': 0}
     reports, failures = [], []
     for stamp, row in pending[:MAX_STOCKS_PER_RUN]:
         try:
@@ -386,6 +400,7 @@ def run(repo, token, now):
                                       (existing + [compact_journal_entry(x) for x in reports])[-MAX_RESEARCHES:])
     return {'status': 'INCOMPLETE' if failures else 'CROSS_REVIEWS_SAVED',
             'source_ai_run_id': run_id, 'entries_written': len(reports),
+            'deferred_incomplete_symbols': deferred,
             'symbol_results': reports, 'failed_symbols': failures,
             'error': 'RETRY_UNFINISHED_CROSS_REVIEWS_NEXT_RUN' if failures else None,
             'journal_total_entries': retained_count}
