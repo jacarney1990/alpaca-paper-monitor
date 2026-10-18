@@ -58,7 +58,8 @@ class StudioTests(unittest.TestCase):
         script = self.client.get("/static/app.js").get_data(as_text=True)
         for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY"):
             self.assertIn(key, script)
-        self.assertIn("existing GitHub finance workflow status", script)
+        self.assertIn("loadFinance", script)
+        self.assertIn("Practice missions", script)
 
     def test_health_has_no_trade_execution(self):
         data = self.client.get("/health").json
@@ -92,6 +93,59 @@ class StudioTests(unittest.TestCase):
         with patch.dict(os.environ, {"OPENAI_API_KEY": "dummy-never-sent"}):
             result = self.client.post("/api/jobs", json=data, headers=self.headers)
         self.assertEqual(result.status_code, 403)
+
+    def test_safe_system_check_is_authenticated(self):
+        self.assertEqual(self.client.get("/api/self-test").status_code, 401)
+        result = self.client.get("/api/self-test", headers=self.headers).json
+        self.assertEqual(result["service"], "online")
+        self.assertEqual(result["storage"], "available")
+        self.assertEqual(result["practice_mode"], "available")
+        self.assertEqual(result["provider_authentication"], "not tested")
+        self.assertEqual(result["trade_execution"], "DISABLED")
+        self.assertEqual(result["usage"]["daily_limit"], 0)
+
+    def test_free_practice_runs_offline_without_keys_or_live_permission(self):
+        from time import sleep
+        request = {"topic": "Explore a possible software project",
+                   "mode": "team", "workflow": "project", "role": "Engineer",
+                   "providers": ["OpenAI", "Gemini", "Groq"], "demo": True}
+        with patch.object(engine, "invoke", side_effect=AssertionError("no network calls allowed")):
+            posted = self.client.post("/api/jobs", json=request, headers=self.headers)
+            self.assertEqual(posted.status_code, 202)
+            self.assertEqual(posted.json["reserved_calls"], 0)
+            result = None
+            for _ in range(50):
+                result = self.client.get("/api/jobs/"+posted.json["id"], headers=self.headers).json
+                if result["status"] != "running":
+                    break
+                sleep(0.02)
+        self.assertEqual(result["status"], "complete")
+        self.assertTrue(result["output"]["simulation"])
+        self.assertEqual(len(result["output"]["initial"]), 3)
+        self.assertEqual(len(result["output"]["cross_review"]), 3)
+        self.assertIn("simulated", result["output"]["synthesis"])
+        self.assertIn("no AI providers", result["output"]["notice"])
+
+    def test_live_calls_blocked_even_if_usage_toggle_on_without_cap(self):
+        request = {"topic": "Real investment research",
+                   "mode": "team", "workflow": "investment", "role": "Risk Auditor",
+                   "providers": ["OpenAI", "Gemini", "Groq"], "demo": False}
+        with patch.dict(os.environ, {"STUDIO_ALLOW_API_USAGE": "true",
+                                     "STUDIO_DAILY_CALL_CAP": "0",
+                                     "OPENAI_API_KEY": "test-key",
+                                     "GEMINI_API_KEY": "test-key",
+                                     "GROQ_API_KEY": "test-key"}):
+            with patch.object(engine, "invoke", side_effect=AssertionError("no provider calls")):
+                response = self.client.post("/api/jobs", json=request, headers=self.headers)
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("daily AI-call safety limit", response.json["error"])
+
+    def test_no_simulated_labels_on_real_engine(self):
+        with patch.object(engine, "invoke", return_value="Stubbed independent answer"):
+            result = engine.run_task("Check engineering assumptions", "independent",
+                                     "Engineer", ["OpenAI"], "project")
+        self.assertNotIn("simulation", result)
+        self.assertEqual(result["trade_execution"], "DISABLED")
 
     def test_independent_and_team_execution_offline(self):
         def stub(name, instruction, prompt):
