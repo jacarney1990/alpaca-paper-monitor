@@ -94,6 +94,11 @@ class StudioTests(unittest.TestCase):
             self.assertEqual(len(result["output"]["cross_review"]), 3)
             self.assertIn("PRACTICE EXAMPLE", result["output"]["synthesis"])
 
+    def test_alpaca_monitor_is_accessible_from_studio_portal(self):
+        page = self.client.get("/").get_data(as_text=True)
+        self.assertIn("https://alpaca-paper-monitor-zgv9.onrender.com", page)
+        self.assertIn('id="check-finance"', page)
+
     def test_health_has_no_trade_execution(self):
         data = self.client.get("/health").json
         self.assertEqual(data["status"], "ok")
