@@ -20,6 +20,15 @@ async function connect(){
 }
 async function loadProviders(){
  const data=await api('/api/providers');$('providers').replaceChildren();let n=0;
+ const KEY_NAMES={OpenAI:'OPENAI_API_KEY',Claude:'ANTHROPIC_API_KEY',Gemini:'GEMINI_API_KEY',Groq:'GROQ_API_KEY'};
+ const missing=Object.entries(data.providers).filter(([name,item])=>!item.configured).map(([name])=>KEY_NAMES[name]);
+ $('missing-keys').replaceChildren();
+ for(const keyName of missing){
+  const item=document.createElement('code');item.textContent=keyName;$('missing-keys').appendChild(item);
+ }
+ $('provider-guidance').textContent=missing.length
+  ?'Missing in Studio: '+missing.length+' direct API '+(missing.length===1?'credential':'credentials')+'. You can still inspect existing GitHub finance workflow status below.'
+  :'All four Studio provider keys are present. External API usage remains independently controlled by the safety setting.';
  for(const [name,v] of Object.entries(data.providers)){
   if(v.configured)n++;
   const el=document.createElement('div');el.className='provider';
@@ -31,7 +40,7 @@ async function loadProviders(){
   const model=document.createElement('small');model.textContent=v.model;
   el.append(lab,state,model);$('providers').appendChild(el);
  }
- $('count').textContent=n+'/4 configured';
+ $('count').textContent=n+'/4 direct Studio keys configured';
  $('usage').textContent=data.api_usage_enabled?'AI API calls ENABLED on server; provider quotas may apply.':'AI API calls disabled (safe default).';
 }
 async function history(){
