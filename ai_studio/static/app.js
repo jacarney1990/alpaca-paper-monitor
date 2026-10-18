@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-let token='', activeId=null, timer=null, statusCache=null;
+let token='', activeId=null, timer=null, statusCache=null, currentWorkflow='research';
 const KEY_NAMES={OpenAI:'OPENAI_API_KEY',Claude:'ANTHROPIC_API_KEY',Gemini:'GEMINI_API_KEY',Groq:'GROQ_API_KEY'};
 function tell(message,error=false){const el=$('feedback');el.textContent=message;el.classList.toggle('error',error);}
 async function api(path,opts={}){
@@ -15,7 +15,7 @@ function navActive(id){
  for(const el of document.querySelectorAll('.main-nav .nav'))el.classList.toggle('active',el.id===id);
 }
 function chooseWorkflow(workflow){
- $('workflow').value=workflow;
+ currentWorkflow=workflow;
  document.querySelectorAll('.tile').forEach(tile=>tile.classList.toggle('selected',tile.dataset.workflow===workflow));
  const names={research:'Research',investment:'Investing research · no orders',project:'Project planning'};
  $('workflow-tag').textContent=names[workflow]||'Research';
@@ -116,7 +116,7 @@ async function launch(demo=false){
  try{
   if(topic.length<3)throw Error('Tell your team what you would like to explore.');
   if(!providers.length)throw Error('Select at least one AI teammate.');
-  const request={topic,workflow:$('workflow').value,mode:$('mode').value,role:$('role').value,providers,demo};
+  const request={topic,workflow:currentWorkflow,mode:$('mode').value,role:$('role').value,providers,demo};
   const job=await api('/api/jobs',{method:'POST',body:JSON.stringify(request)});
   tell(demo?'Practice mission started. All results are simulated; no AI calls were made.':'Live AI mission started. Check progress below.');
   await history();await showJob(job.id);
