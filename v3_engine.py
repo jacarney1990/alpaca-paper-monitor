@@ -328,6 +328,18 @@ def shared_research_context(repo, now):
                     'evidence_status': 'UNVERIFIED_MODEL_OPINIONS',
                     'eligible_to_authorize_trades': False,
                     'summary': str(entry.get('shared_summary') or '')[:360],
+                    'team_models': [m for m in ('OpenAI', 'Gemini', 'Claude', 'Groq')
+                                    if m in (entry.get('model_conclusions') or {})]
+                                    if isinstance(entry.get('model_conclusions'), dict) else [],
+                    'team_views': {
+                        m: {'classification': obj.get('classification'),
+                            'confidence': obj.get('confidence')}
+                        for m, obj in (entry.get('model_conclusions') or {}).items()
+                        if m in ('OpenAI', 'Gemini', 'Claude', 'Groq') and
+                        isinstance(obj, dict) and
+                        obj.get('classification') in ('risk', 'opportunity', 'watch', 'uncertain') and
+                        type(obj.get('confidence')) is int and 0 <= obj['confidence'] <= 100
+                    } if isinstance(entry.get('model_conclusions'), dict) else {},
                 }
         return {'status': 'RECENT' if by_symbol else 'EMPTY_OR_STALE',
                 'used_for_trade_approval': False, 'by_symbol': by_symbol}
