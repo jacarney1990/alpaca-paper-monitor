@@ -326,8 +326,10 @@ LIVE_SMOKE_TOPIC = (
 
 def _live_smoke_worker(job_id):
     """One tiny real multi-model test; never interacts with brokerages."""
-    providers = ["OpenAI", "Gemini", "Groq"]
-    diagnostic = os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower() == "diagnose"
+    selected_mode = os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower()
+    gemini_only = selected_mode == "gemini_only"
+    providers = ["Gemini"] if gemini_only else ["OpenAI", "Gemini", "Groq"]
+    diagnostic = selected_mode in ("diagnose", "gemini_only")
     mode = "independent" if diagnostic else "team"
     try:
         result = run_task(LIVE_SMOKE_TOPIC, mode, "Researcher", providers, "project")
@@ -344,14 +346,16 @@ def _live_smoke_worker(job_id):
         outcome = "complete" if complete else "failed"
         state = "PASS" if complete else "PARTIAL_OR_FAILED"
         # The topic is fixed and contains no user information.
-        excerpt = result["synthesis"].replace("\n", " ")[:450] if synthesized else "unavailable"
+        excerpt = (result["initial"][0].get("answer", "").replace("\n", " ")[:450]
+                   if gemini_only and complete else
+                   result["synthesis"].replace("\n", " ")[:450] if synthesized else "unavailable")
         errors = {row["provider"]: row.get("error", "") for row in result["initial"]
                   if row["status"] != "complete"}
         app.logger.warning(
             "STUDIO_LIVE_SMOKE result=%s stage=%s initial=%s errors=%s "
             "reviews=%s synthesis=%s max_requests=%d broker_orders=0 preview=%s",
             state, mode, initial, errors, reviews, synthesized,
-            3 if diagnostic else 7, excerpt
+            1 if gemini_only else 3 if diagnostic else 7, excerpt
         )
     except Exception as exc:
         result = {"error": "Smoke test failed safely", "type": type(exc).__name__}
@@ -369,23 +373,24 @@ def start_live_smoke_if_requested():
     synthesis. Ordinary live API calls remain disabled for users.
     """
     smoke_mode = os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower()
-    if smoke_mode not in ("true", "diagnose"):
+    if smoke_mode not in ("true", "diagnose", "gemini_only"):
         return
     from engine import output_token_limit
-    if output_token_limit() > 600:
+    if output_token_limit() > (350 if smoke_mode == "gemini_only" else 600):
         app.logger.warning("STUDIO_LIVE_SMOKE blocked: output token cap exceeds 600")
         return
     if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true":
         app.logger.warning("STUDIO_LIVE_SMOKE blocked: ordinary API usage must remain off")
         return
-    for name in ("OpenAI", "Gemini", "Groq"):
+    test_providers = ["Gemini"] if smoke_mode == "gemini_only" else ["OpenAI", "Gemini", "Groq"]
+    for name in test_providers:
         if not provider_status()[name]["configured"]:
             app.logger.warning("STUDIO_LIVE_SMOKE blocked: missing provider %s", name)
             return
     with _LOCK, connection() as db:
         db.execute("CREATE TABLE IF NOT EXISTS one_time_smoke "
                    "(name TEXT PRIMARY KEY, job_id TEXT NOT NULL)")
-        smoke_name = LIVE_SMOKE_NAME + ("-diagnose" if smoke_mode == "diagnose" else "")
+        smoke_name = LIVE_SMOKE_NAME + "-" + smoke_mode
         found = db.execute("SELECT job_id FROM one_time_smoke WHERE name=?",
                            (smoke_name,)).fetchone()
         if found:
@@ -396,12 +401,14 @@ def start_live_smoke_if_requested():
                    (smoke_name, job_id))
         db.execute("INSERT INTO jobs VALUES(?,?,?,?,?,?,?,?,?)",
                    (job_id, datetime.now(timezone.utc).isoformat(), LIVE_SMOKE_TOPIC,
-                    "project", "independent" if smoke_mode == "diagnose" else "team", "Researcher",
-                    json.dumps(["OpenAI", "Gemini", "Groq"]), "running", None))
+                    "project", "independent" if smoke_mode != "true" else "team", "Researcher",
+                    json.dumps(test_providers), "running", None))
     app.logger.warning(
-        "STUDIO_LIVE_SMOKE starting once; stage=%s providers=OpenAI,Gemini,Groq "
+        "STUDIO_LIVE_SMOKE starting once; stage=%s providers=%s "
         "max_requests=%d max_output_tokens=%d api_usage_enabled=false orders=0",
-        smoke_mode, 3 if smoke_mode == "diagnose" else 7, output_token_limit()
+        smoke_mode, ",".join(test_providers),
+        1 if smoke_mode == "gemini_only" else 3 if smoke_mode == "diagnose" else 7,
+        output_token_limit()
     )
     threading.Thread(target=_live_smoke_worker, args=(job_id,), daemon=True).start()
 
