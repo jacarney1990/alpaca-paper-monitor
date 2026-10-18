@@ -40,6 +40,15 @@ class StudioTests(unittest.TestCase):
         self.assertEqual(self.client.get("/static/app.js").status_code, 200)
         self.assertEqual(self.client.get("/static/style.css").status_code, 200)
 
+    def test_sidebar_navigation_is_interactive(self):
+        markup = self.client.get("/").get_data(as_text=True)
+        script = self.client.get("/static/app.js").get_data(as_text=True)
+        for target in ("command", "history", "investment", "research", "project"):
+            self.assertIn('id="nav-' + target + '"', markup)
+            self.assertIn("'nav-" + target + "'", script)
+        self.assertIn("chooseWorkflow('investment')", script)
+        self.assertIn("chooseWorkflow('project')", script)
+
     def test_health_has_no_trade_execution(self):
         data = self.client.get("/health").json
         self.assertEqual(data["status"], "ok")
