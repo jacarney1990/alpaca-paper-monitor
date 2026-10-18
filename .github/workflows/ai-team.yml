@@ -17,7 +17,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: ai-team-readonly
+  group: gemini-research-shared-budget
   cancel-in-progress: false
 
 jobs:
@@ -35,6 +35,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
           ALERT_EMAIL_FROM: ${{ vars.ALERT_EMAIL_FROM }}
@@ -43,6 +44,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_DAILY_REQUEST_CAP: '12'
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
