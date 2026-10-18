@@ -33,6 +33,14 @@ def _text_openai(body):
             out.extend(x.get("text", "") for x in item.get("content", []) if x.get("type") == "output_text")
     return "\n".join(out).strip() or str(body.get("output_text") or "")
 
+def output_token_limit():
+    """Per-request output cap; default is unchanged for ordinary missions."""
+    try:
+        selected = int(os.getenv("STUDIO_MAX_OUTPUT_TOKENS", "1400"))
+    except ValueError:
+        selected = 1400
+    return max(150, min(selected, 1400))
+
 def invoke(name, system, prompt):
     """Use only fixed official provider endpoints. Never echo provider response bodies or credentials."""
     if name not in PROVIDERS:
@@ -46,22 +54,22 @@ def invoke(name, system, prompt):
         if name == "OpenAI":
             r = requests.post("https://api.openai.com/v1/responses", timeout=55,
                 headers={"Authorization": "Bearer " + key},
-                json={"model": model, "instructions": system, "input": prompt, "max_output_tokens": 1400})
+                json={"model": model, "instructions": system, "input": prompt, "max_output_tokens": output_token_limit()})
         elif name == "Claude":
             r = requests.post("https://api.anthropic.com/v1/messages", timeout=55,
                 headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
-                json={"model": model, "max_tokens": 1400, "system": system,
+                json={"model": model, "max_tokens": output_token_limit(), "system": system,
                       "messages": [{"role": "user", "content": prompt}]})
         elif name == "Gemini":
             r = requests.post("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",
                 timeout=55, headers={"x-goog-api-key": key},
                 json={"systemInstruction": {"parts": [{"text": system}]},
                       "contents": [{"parts": [{"text": prompt}]}],
-                      "generationConfig": {"maxOutputTokens": 1400}})
+                      "generationConfig": {"maxOutputTokens": output_token_limit()}})
         else:
             r = requests.post("https://api.groq.com/openai/v1/chat/completions", timeout=55,
                 headers={"Authorization": "Bearer " + key},
-                json={"model": model, "max_tokens": 1400,
+                json={"model": model, "max_tokens": output_token_limit(),
                       "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]})
         if not r.ok:
             raise ProviderError("Provider HTTP " + str(r.status_code))
