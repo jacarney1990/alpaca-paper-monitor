@@ -1,0 +1,29 @@
+name: AI Studio checks (no trading)
+on:
+  push:
+    branches: [feature/multi-ai-studio]
+    paths:
+      - 'ai_studio/**'
+      - '.github/workflows/ai-studio-checks.yml'
+  pull_request:
+    paths:
+      - 'ai_studio/**'
+      - '.github/workflows/ai-studio-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Studio runtime dependencies
+        run: pip install -r requirements.txt
+      - name: Run offline tests (no provider or brokerage calls)
+        env:
+          STUDIO_ALLOW_API_USAGE: "false"
+        run: python -m unittest discover -s ai_studio/tests -p 'test_*.py' -v
