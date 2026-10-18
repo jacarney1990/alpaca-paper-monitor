@@ -321,24 +321,31 @@ LIVE_SMOKE_TOPIC = (
 def _live_smoke_worker(job_id):
     """One tiny real multi-model test; never interacts with brokerages."""
     providers = ["OpenAI", "Gemini", "Groq"]
+    diagnostic = os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower() == "diagnose"
+    mode = "independent" if diagnostic else "team"
     try:
-        result = run_task(LIVE_SMOKE_TOPIC, "team", "Researcher", providers, "project")
+        result = run_task(LIVE_SMOKE_TOPIC, mode, "Researcher", providers, "project")
         initial = {row["provider"]: row["status"] for row in result["initial"]}
         reviews = {row["provider"]: row["status"] for row in result["cross_review"]}
         synthesized = bool(result["synthesis"]) and not result["synthesis"].startswith(
             "Final synthesis unavailable"
         )
-        complete = all(initial.get(n) == "complete" for n in providers) and all(
-            reviews.get(n) == "complete" for n in providers
-        ) and synthesized
+        complete_initial = all(initial.get(n) == "complete" for n in providers)
+        complete = (complete_initial if diagnostic else
+                    complete_initial and all(
+                        reviews.get(n) == "complete" for n in providers
+                    ) and synthesized)
         outcome = "complete" if complete else "failed"
         state = "PASS" if complete else "PARTIAL_OR_FAILED"
         # The topic is fixed and contains no user information.
         excerpt = result["synthesis"].replace("\n", " ")[:450] if synthesized else "unavailable"
+        errors = {row["provider"]: row.get("error", "") for row in result["initial"]
+                  if row["status"] != "complete"}
         app.logger.warning(
-            "STUDIO_LIVE_SMOKE result=%s initial=%s reviews=%s synthesis=%s "
-            "max_requests=7 broker_orders=0 preview=%s",
-            state, initial, reviews, synthesized, excerpt
+            "STUDIO_LIVE_SMOKE result=%s stage=%s initial=%s errors=%s "
+            "reviews=%s synthesis=%s max_requests=%d broker_orders=0 preview=%s",
+            state, mode, initial, errors, reviews, synthesized,
+            3 if diagnostic else 7, excerpt
         )
     except Exception as exc:
         result = {"error": "Smoke test failed safely", "type": type(exc).__name__}
@@ -355,7 +362,8 @@ def start_live_smoke_if_requested():
     Up to three independent answers, three peer reviews and one final
     synthesis. Ordinary live API calls remain disabled for users.
     """
-    if os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower() != "true":
+    smoke_mode = os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower()
+    if smoke_mode not in ("true", "diagnose"):
         return
     from engine import output_token_limit
     if output_token_limit() > 600:
@@ -371,22 +379,23 @@ def start_live_smoke_if_requested():
     with _LOCK, connection() as db:
         db.execute("CREATE TABLE IF NOT EXISTS one_time_smoke "
                    "(name TEXT PRIMARY KEY, job_id TEXT NOT NULL)")
+        smoke_name = LIVE_SMOKE_NAME + ("-diagnose" if smoke_mode == "diagnose" else "")
         found = db.execute("SELECT job_id FROM one_time_smoke WHERE name=?",
-                           (LIVE_SMOKE_NAME,)).fetchone()
+                           (smoke_name,)).fetchone()
         if found:
             app.logger.warning("STUDIO_LIVE_SMOKE already started; no repeat")
             return
         job_id = str(uuid.uuid4())
         db.execute("INSERT INTO one_time_smoke(name,job_id) VALUES(?,?)",
-                   (LIVE_SMOKE_NAME, job_id))
+                   (smoke_name, job_id))
         db.execute("INSERT INTO jobs VALUES(?,?,?,?,?,?,?,?,?)",
                    (job_id, datetime.now(timezone.utc).isoformat(), LIVE_SMOKE_TOPIC,
-                    "project", "team", "Researcher",
+                    "project", "independent" if smoke_mode == "diagnose" else "team", "Researcher",
                     json.dumps(["OpenAI", "Gemini", "Groq"]), "running", None))
     app.logger.warning(
-        "STUDIO_LIVE_SMOKE starting once; providers=OpenAI,Gemini,Groq "
-        "max_requests=7 max_output_tokens=%d api_usage_enabled=false orders=0",
-        output_token_limit()
+        "STUDIO_LIVE_SMOKE starting once; stage=%s providers=OpenAI,Gemini,Groq "
+        "max_requests=%d max_output_tokens=%d api_usage_enabled=false orders=0",
+        smoke_mode, 3 if smoke_mode == "diagnose" else 7, output_token_limit()
     )
     threading.Thread(target=_live_smoke_worker, args=(job_id,), daemon=True).start()
 
