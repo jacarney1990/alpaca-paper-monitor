@@ -188,6 +188,61 @@ class StudioTests(unittest.TestCase):
         self.assertIn("simulated", result["output"]["synthesis"])
         self.assertIn("no AI providers", result["output"]["notice"])
 
+    def test_live_smoke_is_off_unless_opted_in_and_token_bounded(self):
+        import app as studio_app
+        with patch.dict(os.environ, {"STUDIO_RUN_LIVE_SMOKE": "false"}):
+            with patch("app.threading.Thread") as starter:
+                studio_app.start_live_smoke_if_requested()
+            starter.assert_not_called()
+        with patch.dict(os.environ, {"STUDIO_RUN_LIVE_SMOKE": "true",
+                                     "STUDIO_MAX_OUTPUT_TOKENS": "1400",
+                                     "STUDIO_ALLOW_API_USAGE": "false"}):
+            with patch("app.threading.Thread") as starter:
+                studio_app.start_live_smoke_if_requested()
+            starter.assert_not_called()
+        with patch.dict(os.environ, {"STUDIO_MAX_OUTPUT_TOKENS": "400"}):
+            self.assertEqual(engine.output_token_limit(), 400)
+        with patch.dict(os.environ, {"STUDIO_MAX_OUTPUT_TOKENS": "200000"}):
+            self.assertEqual(engine.output_token_limit(), 1400)
+
+    def test_real_smoke_uses_stubbed_models_once_and_logs_provenance(self):
+        import app as studio_app
+        from unittest.mock import Mock
+        providers = ["OpenAI", "Gemini", "Groq"]
+        fake = {
+            "initial": [{"provider": p, "status": "complete", "answer": "stub"}
+                        for p in providers],
+            "cross_review": [{"provider": p, "status": "complete", "answer": "stub review"}
+                             for p in providers],
+            "synthesis": "A bounded verified stub only.",
+            "completed": 3,
+            "requested": 3,
+            "trade_execution": "DISABLED"
+        }
+        def immediate_thread(*, target, args, daemon):
+            class Fake:
+                def start(self):
+                    target(*args)
+            return Fake()
+        with patch.dict(os.environ, {"STUDIO_RUN_LIVE_SMOKE": "true",
+                                     "STUDIO_MAX_OUTPUT_TOKENS": "600",
+                                     "STUDIO_ALLOW_API_USAGE": "false",
+                                     "OPENAI_API_KEY": "offline-test-only",
+                                     "GEMINI_API_KEY": "offline-test-only",
+                                     "GROQ_API_KEY": "offline-test-only"}):
+            with patch("app.run_task", return_value=fake) as invoke:
+                with patch("app.threading.Thread", side_effect=immediate_thread) as thread:
+                    with self.assertLogs(studio_app.app.logger, level="WARNING") as logs:
+                        studio_app.start_live_smoke_if_requested()
+                        studio_app.start_live_smoke_if_requested()
+        self.assertEqual(invoke.call_count, 1)
+        self.assertEqual(thread.call_count, 1)
+        self.assertIn("result=PASS", " ".join(logs.output))
+        self.assertIn("already started", " ".join(logs.output))
+        record = self.client.get("/api/jobs", headers=self.headers).json
+        self.assertTrue(any(item["topic"] == studio_app.LIVE_SMOKE_TOPIC and
+                            item["status"] == "complete" for item in record))
+
     def test_live_calls_blocked_even_if_usage_toggle_on_without_cap(self):
         request = {"topic": "Real investment research",
                    "mode": "team", "workflow": "investment", "role": "Risk Auditor",
