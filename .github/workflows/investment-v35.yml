@@ -1,0 +1,48 @@
+name: Investment V3.5 Shared AI Intelligence (research only)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Starts ~35 minutes after AI Team's 00:39/04:39/... UTC schedule.
+    # GitHub scheduled runs may be delayed or omitted.
+    - cron: '14 1-23/4 * * *'
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: investment-v35-shared-memory
+  cancel-in-progress: false
+
+jobs:
+  shared-intelligence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test shared-memory and cross-review safety
+        run: python -m unittest discover -s tests -p 'test_shared_intelligence.py' -v
+      - name: Cross-review AI Team research and update private journal
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+        run: python shared_intelligence.py
+      - name: Save V3.5 AI shared-memory audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-intelligence-${{ github.run_id }}
+          path: shared-intelligence-report.json
+          if-no-files-found: warn
+          retention-days: 30
