@@ -244,5 +244,72 @@ def create_job():
                      daemon=True).start()
     return jsonify({"id": job_id, "status": "running", "practice": demo, "reserved_calls": required}), 202
 
+
+def run_one_time_safe_test():
+    """Opt-in startup test: real HTTP/SQLite practice path plus metadata-only key checks.
+
+    It never submits requests for AI-generated text or brokerage orders.
+    Keep disabled except when explicitly checking the deployed service.
+    """
+    if os.getenv("STUDIO_RUN_SAFE_TEST", "false").lower() != "true":
+        return
+    import time
+    practice = "error"
+    results = {}
+    token = os.getenv("STUDIO_ACCESS_TOKEN", "")
+    try:
+        if not token:
+            practice = "missing_access_token"
+        else:
+            client = app.test_client()
+            response = client.post("/api/jobs", headers={"X-Studio-Token": token},
+                json={"topic": "Nexus system test: simulated collaborative research",
+                      "mode": "team", "workflow": "research", "role": "Researcher",
+                      "providers": ["OpenAI", "Gemini", "Groq"], "demo": True})
+            if response.status_code != 202:
+                practice = "request_rejected_" + str(response.status_code)
+            else:
+                mission_id = response.get_json()["id"]
+                for _ in range(40):
+                    mission = client.get("/api/jobs/" + mission_id,
+                                         headers={"X-Studio-Token": token})
+                    if mission.status_code != 200:
+                        break
+                    record = mission.get_json()
+                    if record["status"] != "running":
+                        result = record.get("output") or {}
+                        valid = (record["status"] == "complete" and
+                                 result.get("simulation") is True and
+                                 result.get("trade_execution") == "DISABLED" and
+                                 len(result.get("initial", [])) == 3 and
+                                 len(result.get("cross_review", [])) == 3 and
+                                 bool(result.get("synthesis")))
+                        practice = "pass" if valid else "failed"
+                        break
+                    time.sleep(0.1)
+                else:
+                    practice = "timed_out"
+    except Exception as exc:
+        practice = "error_" + type(exc).__name__
+
+    # Model-list endpoints only: no generative token usage or trading operations.
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {name: executor.submit(check_provider_key, name)
+                   for name in PROVIDERS}
+        for name, future in futures.items():
+            try:
+                results[name] = future.result(timeout=12).get("status", "unknown")
+            except Exception:
+                results[name] = "check_error"
+    app.logger.warning(
+        "STUDIO_SAFE_TEST practice=%s OpenAI=%s Gemini=%s Groq=%s Claude=%s "
+        "ai_inference_calls=0 brokerage_orders=0 api_usage_enabled=%s",
+        practice, results.get("OpenAI"), results.get("Gemini"),
+        results.get("Groq"), results.get("Claude"),
+        os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true"
+    )
+
+run_one_time_safe_test()
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
