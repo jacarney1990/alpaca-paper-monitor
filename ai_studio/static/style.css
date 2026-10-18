@@ -35,3 +35,11 @@ footer{color:#788fae;font-size:11px;text-align:center;padding:26px 0}
 
 .nav{display:block;width:100%;text-align:left;cursor:pointer;font-weight:600;line-height:1.35}
 .nav:focus-visible{outline:2px solid #80bcff;outline-offset:2px}
+
+.panel-mini{padding:15px;background:#0b1829;border:1px solid #385371;border-radius:10px;margin-top:20px}
+.panel-mini strong{font-size:13px;color:#cae5ff}
+.panel-mini p{margin-top:9px}
+.missing-keys{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}
+.missing-keys code{font-size:11px;color:#dbedff;background:#1e3350;border:1px solid #46648a;border-radius:5px;padding:6px 8px}
+.setup-link{display:inline-block;padding:10px 12px;background:#234672;color:#e7f5ff;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700}
+.setup-link:hover,.setup-link:focus-visible{outline:2px solid #7cb9ff}
