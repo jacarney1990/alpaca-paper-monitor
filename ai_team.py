@@ -19,6 +19,7 @@ MODEL_CONFIG = {
     'OpenAI': ('OPENAI_API_KEY', 'OPENAI_MODEL', 'gpt-6-luna'),
     'Claude': ('ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL', 'claude-haiku-5-5'),
     'Gemini': ('GEMINI_API_KEY', 'GEMINI_MODEL', 'gemini-3.5-flash'),
+    'Groq': ('GROQ_API_KEY', 'GROQ_MODEL', 'qwen/qwen3.8-27b'),
 }
 SCHEMA = {
     'type': 'object',
@@ -36,6 +37,7 @@ ROLES = {
     'OpenAI': 'Act as an evidence-verifying research synthesizer. Separate sourced claims from guesses.',
     'Claude': 'Act as a skeptical fundamental analyst. Search for dilution, downside, and missing facts.',
     'Gemini': 'Act as an independent contrary reviewer. Challenge weak narratives and stale sources.',
+    'Groq': 'Act as an independent skeptical evidence auditor. Identify alternative explanations and missing corroboration.',
 }
 
 
@@ -123,6 +125,12 @@ def parse_provider_reply(name, response, raw):
         candidates = response.get('candidates') or []
         finish = candidates[0].get('finishReason', 'unknown') if candidates else 'no_candidate'
         state = f'finishReason={str(finish)[:35]}'
+    elif name == 'Groq':
+        choices = response.get('choices') or []
+        finish = choices[0].get('finish_reason', 'unknown') if choices else 'no_choice'
+        state = f'finish_reason={str(finish)[:35]}'
+        if finish != 'stop':
+            raise ProviderReviewError(f'Groq completion not finalized ({state})')
     else:
         state = 'no_completion_metadata'
     if not isinstance(raw, str) or not raw.strip():
@@ -186,6 +194,24 @@ def ask_provider(name, prompt):
             })
             raw = '\n'.join(part.get('text', '') for c in response.get('candidates', [])
                             for part in c.get('content', {}).get('parts', []) if part.get('text'))
+        elif name == 'Groq':
+            # Free GroqCloud tier only. Account plan is managed by the user;
+            # this code never upgrades, adds billing, or falls back to paid providers.
+            response = json_http('https://api.groq.com/openai/v1/chat/completions',
+                                 headers={'Authorization': 'Bearer ' + api_key},
+                                 payload={
+                'model': model,
+                'messages': [{'role': 'system', 'content': instruction},
+                             {'role': 'user', 'content': prompt}],
+                'response_format': {
+                    'type': 'json_schema',
+                    'json_schema': {'name': 'investment_review', 'strict': True, 'schema': SCHEMA},
+                },
+                'max_completion_tokens': token_limit,
+                'temperature': 0.2,
+            }, retries=0)  # A 429 waits for a future run; never floods a free account.
+            choices = response.get('choices') or []
+            raw = choices[0].get('message', {}).get('content', '') if choices else ''
         else:
             raise ValueError('Unknown model')
         try:
@@ -221,6 +247,10 @@ def consensus(reviews, sources):
         return {'status': 'NO_CONSENSUS', 'classification': 'uncertain', 'why': 'Fewer than two independent models'}
     qualified = [v for v in reviews.values() if v['confidence'] >= 65]
     counts = Counter(v['classification'] for v in qualified)
+    if len(counts) > 1 and any(k != 'uncertain' for k in counts):
+        return {'status': 'DISPUTED_REVIEW' if len(reviews) >= 3 else 'NO_CONSENSUS',
+                'classification': 'uncertain',
+                'why': 'Qualified reviewers disagree; no unified team conclusion'}
     cls, votes = counts.most_common(1)[0] if counts else ('uncertain', 0)
     if votes < 2 or cls == 'uncertain':
         return {'status': 'NO_CONSENSUS', 'classification': 'uncertain', 'why': 'Insufficient qualified agreement'}
@@ -287,6 +317,7 @@ def collect_leads(now):
 
 
 def agent_report(symbol, sources, now):
+    participants = configured_models()
     samples = [{'id': s['id'], 'kind': s['kind'], 'title': s['title'], 'url': s['url']}
                for s in sources[:9]]
     market = quote_snapshot(symbol)
@@ -295,8 +326,8 @@ def agent_report(symbol, sources, now):
             'analyst_instruction': 'This is independent non-execution research; classify evidence, not stocks.'}
     prompt = json.dumps(data, separators=(',', ':'))
     reviews = {}
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        futures = {pool.submit(ask_provider, name, prompt): name for name in configured_models()}
+    with ThreadPoolExecutor(max_workers=min(4, len(participants))) as pool:
+        futures = {pool.submit(ask_provider, name, prompt): name for name in participants}
         for f in as_completed(futures):
             name = futures[f]
             try:
@@ -308,6 +339,9 @@ def agent_report(symbol, sources, now):
             except Exception as exc:
                 print(f'{name} review unavailable for {symbol}: {type(exc).__name__}')
     return {'symbol': symbol, 'sources': samples, 'snapshot': market,
+            'expected_models': participants,
+            'missing_models': sorted(set(participants) - set(reviews)),
+            'team_status': 'COMPLETE' if set(reviews) == set(participants) else 'INCOMPLETE',
             'reviews': reviews, 'consensus': consensus(reviews, samples),
             'trade_execution': 'DISABLED'}
 
@@ -318,7 +352,7 @@ def format_report(reports, now):
              'Sources are leads, not verified complete claims.', '']
     for r in reports:
         c = r['consensus']
-        lines.append(f"{r['symbol']} | {c['status']} | {c['classification'].upper()}")
+        lines.append(f"{r['symbol']} | team={r.get('team_status', 'UNKNOWN')} | {c['status']} | {c['classification'].upper()}")
         lines.append(c['why'])
         for name, rev in r['reviews'].items():
             lines.append(f"  {name}: {rev['classification']} ({rev['confidence']}/100 self-rated) | {rev['summary']}")
@@ -375,10 +409,12 @@ def main():
     with open('ai-team-report.json', 'w', encoding='utf-8') as handle:
         json.dump({'as_of': now.isoformat(), 'source_health': health, 'reports': reports,
                    'execution': 'DISABLED', 'portfolio_connected': False}, handle, indent=2)
-    completed = [r for r in reports if len(r['reviews']) >= 2]
-    incomplete = [r['symbol'] for r in reports if len(r['reviews']) < 2]
+    # Mark a source processed only after ALL configured participants have reviewed it.
+    # A provider outage is not silently represented as a complete team result.
+    completed = [r for r in reports if r['team_status'] == 'COMPLETE' and len(r['reviews']) >= 2]
+    incomplete = [r['symbol'] for r in reports if r['team_status'] != 'COMPLETE' or len(r['reviews']) < 2]
     print(f'Independent AI reviews: {sum(len(r["reviews"]) for r in reports)} valid responses '
-          f'across {len(reports)} symbols; {len(completed)} symbols have at least 2 reviewers')
+          f'across {len(reports)} symbols; {len(completed)} complete team reviews (all configured providers)')
     if completed:
         # Partial results may be emailed but never presented as verified consensus.
         subject = 'AI research (review only): ' + ', '.join(r['symbol'] for r in reports)
@@ -390,8 +426,8 @@ def main():
                 seen.update(s['id'] for s in new)
         save_ai_state(repo, issue_no, {'processed': sorted(seen)[-1200:], 'last_sent': now.isoformat()})
     if incomplete:
-        print('Incomplete two-model reviews (not marked processed): ' + ', '.join(incomplete))
-        raise RuntimeError('At least one ticker lacks two validated AI reviews; see sanitized provider errors above')
+        print('Incomplete configured-team reviews (not marked processed): ' + ', '.join(incomplete))
+        raise RuntimeError('At least one ticker lacks a fully validated team review; see sanitized provider errors above')
 
 
 if __name__ == '__main__':
