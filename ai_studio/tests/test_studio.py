@@ -173,6 +173,32 @@ class StudioTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertIn("daily AI-call safety limit", response.json["error"])
 
+    def test_provider_validation_metadata_only_and_requires_login(self):
+        self.assertEqual(self.client.post("/api/providers/check").status_code, 401)
+        def mock_result(provider):
+            return {"status": "valid" if provider != "Claude" else "missing",
+                    "detail": "Fake metadata result only"}
+        with patch("app.check_provider_key", side_effect=mock_result) as checked:
+            response = self.client.post("/api/providers/check", headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json["model_inference_performed"])
+        self.assertEqual(response.json["brokerage_orders"], 0)
+        self.assertEqual(response.json["providers"]["OpenAI"]["status"], "valid")
+        self.assertEqual(response.json["providers"]["Claude"]["status"], "missing")
+        self.assertEqual(checked.call_count, 4)
+
+    def test_provider_key_check_makes_no_inference_requests(self):
+        with patch.dict(os.environ, {"GROQ_API_KEY": "dummy-key"}):
+            with patch.object(engine.requests, "get") as http:
+                http.return_value.status_code = 200
+                result = engine.check_provider_key("Groq")
+        self.assertEqual(result["status"], "valid")
+        self.assertEqual(http.call_count, 1)
+        url = http.call_args.args[0]
+        self.assertEqual(url, "https://api.groq.com/openai/v1/models")
+        self.assertNotIn("dummy-key", url)
+        self.assertEqual(http.call_args.kwargs["timeout"], 9)
+
     def test_no_simulated_labels_on_real_engine(self):
         with patch.object(engine, "invoke", return_value="Stubbed independent answer"):
             result = engine.run_task("Check engineering assumptions", "independent",
