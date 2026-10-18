@@ -140,3 +140,27 @@ def run_task(topic, mode, specialization, providers, workflow):
             final = "Final synthesis unavailable. Check the independent findings and peer reviews."
     return {"initial": first, "cross_review": peer, "synthesis": final, "mode": mode,
             "completed": len(completed), "requested": len(selected), "trade_execution": "DISABLED"}
+
+
+def run_demo_task(topic, mode, specialization, providers, workflow):
+    """Exercise the app's job/results path offline. Not model output or research."""
+    if mode not in ("independent", "team") or specialization not in ROLES or workflow not in ("investment", "research", "project"):
+        raise ValueError("Invalid practice mission")
+    if not providers or any(name not in PROVIDERS for name in providers):
+        raise ValueError("Invalid practice provider")
+    first = [{"provider": name, "status": "complete",
+              "answer": ("PRACTICE EXAMPLE — simulated " + specialization.lower() + " review by "
+                         + name + ". The task was received: " + topic[:220]
+                         + ". A live run would analyze evidence, state uncertainty and list next steps. "
+                         "This example is not a factual answer or AI-generated opinion.")}
+             for name in providers]
+    peer = ([{"provider": x["provider"], "status": "complete",
+              "answer": "PRACTICE EXAMPLE — simulated peer review: check the evidence, reconcile conflicting findings and flag unknowns."}
+             for x in first] if mode == "team" and len(first) > 1 else [])
+    synthesis = ("PRACTICE EXAMPLE — simulated synthesis. In a real team mission, multiple providers would "
+                 "compare findings, explain disagreements and produce a consolidated answer."
+                 if mode == "team" else "")
+    return {"initial": first, "cross_review": peer, "synthesis": synthesis,
+            "mode": mode, "completed": len(first), "requested": len(first),
+            "trade_execution": "DISABLED", "simulation": True,
+            "notice": "PRACTICE ONLY: no AI providers, market-data feeds or brokerage accounts were contacted."}
