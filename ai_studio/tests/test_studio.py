@@ -243,6 +243,37 @@ class StudioTests(unittest.TestCase):
         self.assertTrue(any(item["topic"] == studio_app.LIVE_SMOKE_TOPIC and
                             item["status"] == "complete" for item in record))
 
+    def test_independent_smoke_logs_sanitized_errors_without_reviews(self):
+        import app as studio_app
+        providers = ["OpenAI", "Gemini", "Groq"]
+        fake = {
+            "initial": [{"provider": p, "status": "failed",
+                         "error": "Provider HTTP 429"} for p in providers],
+            "cross_review": [], "synthesis": "", "completed": 0, "requested": 3,
+            "trade_execution": "DISABLED"
+        }
+        def immediate_thread(*, target, args, daemon):
+            class Fake:
+                def start(self):
+                    target(*args)
+            return Fake()
+        with patch.dict(os.environ, {"STUDIO_RUN_LIVE_SMOKE": "diagnose",
+                                     "STUDIO_MAX_OUTPUT_TOKENS": "250",
+                                     "STUDIO_ALLOW_API_USAGE": "false",
+                                     "OPENAI_API_KEY": "offline-test-only",
+                                     "GEMINI_API_KEY": "offline-test-only",
+                                     "GROQ_API_KEY": "offline-test-only"}):
+            with patch("app.run_task", return_value=fake) as invoke:
+                with patch("app.threading.Thread", side_effect=immediate_thread):
+                    with self.assertLogs(studio_app.app.logger, level="WARNING") as logs:
+                        studio_app.start_live_smoke_if_requested()
+                        studio_app.start_live_smoke_if_requested()
+        self.assertEqual(invoke.call_count, 1)
+        self.assertEqual(invoke.call_args.args[1], "independent")
+        self.assertIn("Provider HTTP 429", " ".join(logs.output))
+        self.assertIn("max_requests=3", " ".join(logs.output))
+        self.assertIn("already started", " ".join(logs.output))
+
     def test_live_calls_blocked_even_if_usage_toggle_on_without_cap(self):
         request = {"topic": "Real investment research",
                    "mode": "team", "workflow": "investment", "role": "Risk Auditor",
