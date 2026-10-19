@@ -1,0 +1,95 @@
+name: Verify and archive public Nexus distribution
+on:
+  push:
+    branches: [feature/multi-ai-studio]
+    paths:
+      - '.github/workflows/nexus-public-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-public:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Verify deployed public share/install/download endpoints
+        run: |
+          python - <<'PY'
+          import io
+          import json
+          import struct
+          import time
+          import urllib.error
+          import urllib.request
+          import zipfile
+
+          base = 'https://multi-ai-intelligence-studio.onrender.com'
+          def get(path):
+              error = None
+              for trial in range(4):
+                  try:
+                      req = urllib.request.Request(base + path, headers={
+                          'User-Agent': 'NexusPublicDistributionSmoke/1.0'})
+                      with urllib.request.urlopen(req, timeout=70) as response:
+                          return response.status, response.headers, response.read()
+                  except (OSError, urllib.error.HTTPError) as e:
+                      error = e
+                      if trial < 3: time.sleep(8)
+              raise RuntimeError('Public path unavailable: ' + path) from error
+
+          code, _, root = get('/')
+          assert code == 200 and b'id="install-nexus"' in root
+          assert b'href="/download"' in root
+          code, _, demo = get('/demo')
+          assert code == 200 and b'PUBLIC PRACTICE ENVIRONMENT' in demo
+          assert b'id="share-nexus"' in demo
+          code, _, manifest_data = get('/static/manifest.webmanifest')
+          assert code == 200
+          manifest = json.loads(manifest_data)
+          assert manifest['display'] == 'standalone'
+          assert any(icon['sizes'] == '512x512' for icon in manifest['icons'])
+          code, _, demo_manifest_data = get('/static/demo-manifest.webmanifest')
+          assert code == 200
+          assert json.loads(demo_manifest_data)['start_url'].startswith('/demo')
+          code, headers, worker = get('/service-worker.js')
+          assert code == 200 and headers.get('Service-Worker-Allowed') == '/'
+          assert b'PUBLIC_ASSETS' in worker
+          code, _, health_data = get('/health')
+          health = json.loads(health_data)
+          assert code == 200 and health['trade_execution'] == 'DISABLED'
+          assert health['api_usage_enabled'] is False
+          try:
+              get('/api/providers')
+          except RuntimeError:
+              # The authenticated endpoint must never be readable anonymously.
+              pass
+          else:
+              raise AssertionError('Private provider endpoint was publicly readable')
+
+          code, _, package = get('/download')
+          assert code == 200
+          with zipfile.ZipFile(io.BytesIO(package)) as archive:
+              assert archive.testzip() is None
+              names = archive.namelist()
+              assert 'Nexus-AI-Studio/README-START-HERE.md' in names
+              assert 'Nexus-AI-Studio/.env.example' in names
+              assert not any('.sqlite' in name or '/.git/' in name or
+                             'paper_pilot.py' in name for name in names)
+              for side in (192, 512):
+                  binary = archive.read(
+                      'Nexus-AI-Studio/ai_studio/static/nexus-icon-%s.png' % side)
+                  assert binary[:8] == b'\x89PNG\r\n\x1a\n'
+                  assert struct.unpack('!II', binary[16:24]) == (side, side)
+          with open('Nexus-AI-Studio-Source.zip', 'wb') as dest:
+              dest.write(package)
+          print('PASS: public preview, both manifests, PWA worker, anonymous API isolation,')
+          print('privacy-filtered ZIP, Android icons, and trading/AI safety flags')
+          print('Archive size:', len(package), 'bytes')
+          PY
+      - name: Archive verified downloadable standalone Nexus Studio source
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-AI-Studio-Source
+          path: Nexus-AI-Studio-Source.zip
+          if-no-files-found: error
+          retention-days: 90
