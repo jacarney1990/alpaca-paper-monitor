@@ -485,6 +485,19 @@ def run_public_source_smoke_if_requested():
                 results[name] = (exc.code, 0)
             except Exception:
                 results[name] = ("unexpected_source_error", 0)
+    # Check whether SEC's data host is reachable even when the SEC ticker
+    # directory on www.sec.gov is blocked by a hosting provider's egress IP.
+    # CRSP's 10-digit CIK is public and SEC-verified.
+    try:
+        from public_sources import _get_json
+        direct = _get_json(
+            "https://data.sec.gov/submissions/CIK0001674416.json", sec=True)
+        direct_sec = "ok" if direct.get("cik") else "invalid_source_data"
+    except SourceError as exc:
+        direct_sec = exc.code
+    except Exception:
+        direct_sec = "unexpected_source_error"
+    app.logger.warning("STUDIO_PUBLIC_SOURCE_SEC_DIRECT result=%s", direct_sec)
     app.logger.warning(
         "STUDIO_PUBLIC_SOURCES SEC=%s FDA=%s FRED=%s "
         "ai_inference_calls=0 broker_orders=0",
