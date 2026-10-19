@@ -23,8 +23,13 @@ jobs:
           python-version: '3.12'
       - name: Install Studio runtime dependencies
         run: pip install -r requirements.txt
-      - name: Check mobile dashboard JavaScript syntax
-        run: node --check ai_studio/static/app.js
+      - name: Check every web app JavaScript module and install manifest
+        run: |
+          node --check ai_studio/static/app.js
+          node --check ai_studio/static/demo.js
+          node --check ai_studio/static/install.js
+          node --check ai_studio/static/service-worker.js
+          python -m json.tool ai_studio/static/manifest.webmanifest > /dev/null
       - name: Check Python syntax without sending provider requests
         run: python -m compileall -q ai_studio
       - name: Run offline tests (no provider or brokerage calls)
