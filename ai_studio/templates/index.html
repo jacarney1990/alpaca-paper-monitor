@@ -19,6 +19,7 @@
       <button id="nav-research" type="button" class="nav"><span class="nav-symbol">◎</span> Research</button>
       <button id="nav-investment" type="button" class="nav"><span class="nav-symbol">↗</span> Investing</button>
       <button id="nav-project" type="button" class="nav"><span class="nav-symbol">▤</span> Projects</button>
+      <button id="nav-sources" type="button" class="nav"><span class="nav-symbol">▥</span> Data sources</button>
       <button id="nav-history" type="button" class="nav"><span class="nav-symbol">◷</span> History</button>
     </nav>
     <div class="sidebar-bottom">
@@ -56,6 +57,7 @@
       <article class="mini-card"><div class="mini-icon cyan">✦</div><div><span class="metric" id="count">—</span><span class="metric-label">AI keys saved</span><small>Presence only; not yet tested live</small></div></article>
       <article class="mini-card"><div class="mini-icon violet">▣</div><div><span class="metric" id="practice-state">Ready</span><span class="metric-label">Free practice test</span><small>No AI requests, no charges</small></div></article>
       <article class="mini-card"><div class="mini-icon amber">◇</div><div><span class="metric">Shadow</span><span class="metric-label">Investing safety</span><small>Paper and live orders off</small></div></article>
+      <article class="mini-card"><div class="mini-icon cyan">▥</div><div><span class="metric">3</span><span class="metric-label">Official data sources</span><small>SEC · FDA · FRED</small></div></article>
     </section>
 
     <section id="mission" class="workspace-section">
@@ -90,6 +92,61 @@
       </div>
     </section>
 
+
+    <section id="data-hub" class="workspace-section source-hub">
+      <div class="heading-row">
+        <div><div class="eyebrow">TRUSTED PUBLIC INFORMATION</div><h2>SEC · FDA · FRED Research</h2>
+          <p>Search official filings, recalls, approvals and economic indicators without using AI tokens or trading.</p></div>
+        <span class="small-tag">02 · SOURCES</span>
+      </div>
+      <div id="source-status" class="source-status">Connect your private workspace to use public research data.</div>
+      <div class="source-tools">
+        <form id="sec-form" class="source-tool card">
+          <div class="source-icon sec-icon">SEC</div>
+          <h3>Company filings</h3><p>Official EDGAR forms, including 8-K, 10-K and 10-Q.</p>
+          <label class="field-label" for="sec-ticker">Stock ticker</label>
+          <input id="sec-ticker" maxlength="8" value="CRSP" placeholder="e.g. CRSP" required>
+          <button class="btn primary" type="submit">Find SEC filings →</button>
+        </form>
+        <form id="fda-form" class="source-tool card">
+          <div class="source-icon fda-icon">FDA</div>
+          <h3>FDA signals</h3><p>Search reported recalls or FDA drug applications.</p>
+          <label class="field-label" for="fda-dataset">Data type</label>
+          <select id="fda-dataset">
+            <option value="drug_recalls">Drug recalls</option>
+            <option value="device_recalls">Device recalls</option>
+            <option value="drug_approvals">Drug applications / approvals</option>
+          </select>
+          <label class="field-label" for="fda-query">Product or sponsor name</label>
+          <input id="fda-query" maxlength="60" value="aspirin" placeholder="e.g. aspirin" required>
+          <button class="btn primary" type="submit">Search FDA →</button>
+        </form>
+        <form id="fred-form" class="source-tool card">
+          <div class="source-icon fred-icon">FRED</div>
+          <h3>Economic dashboard</h3><p>Federal Reserve economic series and recent observations.</p>
+          <label class="field-label" for="fred-series">Economic indicator</label>
+          <select id="fred-series">
+            <option value="UNRATE">Unemployment rate</option>
+            <option value="CPIAUCSL">Inflation (CPI)</option>
+            <option value="FEDFUNDS">Federal funds rate</option>
+            <option value="DGS10">10-year Treasury yield</option>
+            <option value="GDP">US GDP</option>
+            <option value="PAYEMS">Nonfarm payrolls</option>
+            <option value="PCEPI">Personal consumption inflation</option>
+            <option value="INDPRO">Industrial production</option>
+          </select>
+          <button class="btn primary" type="submit">View FRED data →</button>
+        </form>
+      </div>
+      <div class="source-results card" id="source-results" role="status" aria-live="polite">
+        <h3>Official research results</h3>
+        <p class="placeholder">Choose a source above. Results link directly to the underlying public data, not AI-generated claims.</p>
+      </div>
+      <p class="source-disclaimer">Research context only. SEC filing metadata is not a verified financial conclusion;
+      openFDA reports do not establish causation or regulatory approval of a new product;
+      FRED figures can be delayed and revised. No trading is enabled.</p>
+    </section>
+
     <div class="lower-grid">
       <section id="finance-workflows" class="card finance-panel">
         <div class="section-head"><div><div class="eyebrow">CONNECTED PLATFORM</div><h2>Investing system</h2><p>Read-only status of your existing GitHub research team and V4.3 pilot.</p></div><span class="status-pill safe">● Shadow only</span></div>
@@ -121,6 +178,7 @@
     <section class="settings-tip card" aria-label="Provider setup">
       <div class="section-head"><div><div class="eyebrow">SETTINGS &amp; CONNECTIONS</div><h2>Manage your AI keys</h2><p id="provider-guidance">Connect to see which providers have API keys saved.</p></div><a class="btn secondary small" href="https://dashboard.render.com/web/srv-dbaedtbncjis73d8hm60" target="_blank" rel="noopener noreferrer">Open Render ↗</a></div>
       <div id="missing-keys" class="missing-keys"></div>
+      <p class="muted-note">Optional free AI: <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">create an OpenRouter API key</a> and save it as <code>OPENROUTER_API_KEY</code> on Render. Nexus only permits <code>openrouter/free</code> or free-suffix models. Free tiers have limits and require an account.</p>
       <p class="muted-note">Your credentials stay on Render. Never paste keys into chat. API usage remains disabled unless explicitly authorized. Free Render storage is not permanent; mission history may disappear after restarts.</p>
     </section>
 
@@ -130,6 +188,7 @@
 <nav class="mobile-bar" aria-label="Mobile navigation">
   <button type="button" data-jump="home" class="mob-active"><span>⌂</span>Home</button>
   <button type="button" data-jump="mission"><span>✦</span>Create</button>
+  <button type="button" data-jump="data-hub"><span>▥</span>Sources</button>
   <button type="button" data-jump="finance-workflows"><span>↗</span>Investing</button>
   <button type="button" data-jump="history-panel"><span>◷</span>History</button>
 </nav>
