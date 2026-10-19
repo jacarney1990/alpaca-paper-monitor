@@ -99,7 +99,8 @@ STUDIO_SHARE_FILES = (
     "static/app.js", "static/demo.js", "static/install.js",
     "static/style.css", "static/offline.html", "static/nexus-icon.svg",
     "static/nexus-icon-192.png", "static/nexus-icon-512.png",
-    "static/manifest.webmanifest", "static/service-worker.js",
+    "static/manifest.webmanifest", "static/demo-manifest.webmanifest",
+    "static/service-worker.js",
     "tools/build_icons.py", "tests/test_studio.py", "tests/test_public_sources.py",
 )
 STUDIO_DOWNLOAD_README = """# Nexus AI Studio: standalone source package
