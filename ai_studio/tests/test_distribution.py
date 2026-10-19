@@ -48,6 +48,7 @@ class DistributionTest(unittest.TestCase):
         self.assertIn('src="/static/demo.js"', markup)
         self.assertIn('src="/static/install.js"', markup)
         self.assertIn('href="/download"', markup)
+        self.assertIn('href="/static/demo-manifest.webmanifest"', markup)
         self.assertIn("prewritten sample content", markup)
         self.assertNotIn("<script>", markup)
         self.assertNotIn("<style>", markup)
@@ -85,6 +86,16 @@ class DistributionTest(unittest.TestCase):
             self.assertEqual(binary[:8], b"\x89PNG\r\n\x1a\n")
             self.assertEqual(struct.unpack("!II", binary[16:24]),
                              (size, size))
+
+    def test_public_install_launches_demo_not_private_workspace(self):
+        response = self.client.get("/static/demo-manifest.webmanifest")
+        self.assertEqual(response.status_code, 200)
+        manifest = json.loads(response.get_data(as_text=True))
+        self.assertEqual(manifest["start_url"], "/demo?installed=1")
+        self.assertNotEqual(manifest["id"], "/nexus-ai-studio")
+        self.assertTrue(manifest["name"].endswith("Public Preview"))
+        self.assertTrue(any(x["src"].endswith("nexus-icon-512.png")
+                            for x in manifest["icons"]))
 
     def test_worker_caches_only_public_assets_not_api_or_private_history(self):
         response = self.client.get("/service-worker.js")
