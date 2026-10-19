@@ -56,3 +56,5 @@
 @media(max-width:1050px){.source-tools{grid-template-columns:1fr 1fr}}
 @media(max-width:810px){.mobile-bar{grid-template-columns:repeat(5,1fr)}}
 @media(max-width:620px){.source-tools{grid-template-columns:1fr}.source-tool p{min-height:0}.source-tool{padding:17px}.source-record{padding:13px}.overview-cards .mini-card:last-child{grid-column:auto}}
+
+.source-use{display:flex;margin-top:17px;width:100%;max-width:460px;font-size:12px}
