@@ -114,7 +114,7 @@ class StudioTests(unittest.TestCase):
         self.assertIn("Groq=limited", summary)
         self.assertIn("ai_inference_calls=0", summary)
         self.assertIn("brokerage_orders=0", summary)
-        self.assertEqual(checked.call_count, 4)
+        self.assertEqual(checked.call_count, len(engine.PROVIDERS))
         recorded = self.client.get("/api/jobs", headers=self.headers).json
         self.assertTrue(any(x["topic"].startswith("Nexus system test:") for x in recorded))
 
@@ -394,6 +394,83 @@ class StudioTests(unittest.TestCase):
                 self.assertIn("model listed", checked["detail"])
         self.assertEqual(engine.PROVIDERS["Gemini"][2], "gemini-3.5-flash-lite")
         self.assertEqual(engine.PROVIDERS["Groq"][2], "qwen/qwen3.8-27b")
+
+    def test_public_data_sources_are_authenticated_and_sanitized(self):
+        self.assertEqual(self.client.get("/api/sources/status").status_code, 401)
+        self.assertEqual(self.client.post("/api/sources/query",
+                         json={"source": "SEC", "ticker": "CRSP"}).status_code, 401)
+        current = self.client.get("/api/sources/status", headers=self.headers)
+        self.assertEqual(current.status_code, 200)
+        self.assertEqual(set(current.json["sources"]), {"SEC", "FDA", "FRED"})
+        self.assertEqual(current.json["trading"], "DISABLED")
+        self.assertFalse(current.json["ai_generation_enabled"])
+        from unittest.mock import MagicMock
+        response = {"source": "FDA", "status": "ok",
+                    "items": [{"title": "Sample", "url": "https://api.fda.gov/drug/enforcement.json"}],
+                    "trading": "DISABLED", "ai_requests": 0}
+        with patch("app.lookup_public_source", return_value=response) as lookup:
+            found = self.client.post("/api/sources/query",
+                      headers=self.headers,
+                      json={"source": "FDA", "query": "aspirin", "dataset": "drug_recalls"})
+        self.assertEqual(found.status_code, 200)
+        self.assertEqual(found.json["ai_requests"], 0)
+        self.assertEqual(found.json["trading"], "DISABLED")
+        lookup.assert_called_once()
+        for invalid in ({"source": "bad"}, {"source": "FRED", "series": "x" * 100}):
+            self.assertEqual(self.client.post("/api/sources/query",
+                headers=self.headers, json=invalid).status_code, 400)
+
+    def test_source_rate_limits_do_not_leak_secrets_or_call_models(self):
+        from public_sources import SourceError
+        with patch("app.lookup_public_source", side_effect=SourceError("rate_limited")):
+            with patch.object(engine, "invoke",
+                              side_effect=AssertionError("No AI calls permitted")):
+                response = self.client.post("/api/sources/query",
+                           headers=self.headers, json={"source": "SEC", "ticker": "CRSP"})
+        self.assertEqual(response.status_code, 429)
+        self.assertNotIn("API_KEY", response.get_data(as_text=True))
+
+    def test_openrouter_free_is_configurable_but_paid_ids_are_rejected(self):
+        from unittest.mock import Mock
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-placeholder",
+                                     "OPENROUTER_MODEL": "fake/paid"}):
+            with patch.object(engine.requests, "post") as post:
+                with self.assertRaisesRegex(engine.ProviderError, "free-only"):
+                    engine.invoke("OpenRouter Free", "research", "test")
+                post.assert_not_called()
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-placeholder",
+                                     "OPENROUTER_MODEL": "openrouter/free"}):
+            with patch.object(engine.requests, "post") as post:
+                post.return_value.ok = True
+                post.return_value.json.return_value = {
+                    "choices": [{"message": {"content": "Free model reply"}}]}
+                result = engine.invoke("OpenRouter Free", "research", "test")
+        self.assertEqual(result, "Free model reply")
+        self.assertEqual(post.call_args.args[0],
+                         "https://openrouter.ai/api/v1/chat/completions")
+        self.assertEqual(post.call_args.kwargs["json"]["model"], "openrouter/free")
+        self.assertEqual(post.call_count, 1)
+
+    def test_openrouter_key_check_uses_authenticated_metadata_only(self):
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-placeholder"}):
+            with patch.object(engine.requests, "get") as get:
+                get.return_value.status_code = 200
+                checked = engine.check_provider_key("OpenRouter Free")
+        self.assertEqual(checked["status"], "valid")
+        self.assertIsNone(checked["model_listed"])
+        self.assertEqual(get.call_args.args[0], "https://openrouter.ai/api/v1/key")
+
+    def test_incomplete_real_team_cannot_be_called_complete(self):
+        def mock_invoke(provider, system, prompt):
+            if provider == "OpenAI":
+                raise engine.ProviderError("Provider HTTP 429")
+            return "Provider supported analysis"
+        with patch.object(engine, "invoke", side_effect=mock_invoke):
+            result = engine.run_task("Check an energy research thesis",
+                         "team", "Researcher", ["OpenAI", "Gemini"], "research")
+        self.assertEqual(result["team_status"], "PARTIAL")
+        self.assertEqual(result["completed"], 1)
+        self.assertEqual(result["trade_execution"], "DISABLED")
 
     def test_no_simulated_labels_on_real_engine(self):
         with patch.object(engine, "invoke", return_value="Stubbed independent answer"):
