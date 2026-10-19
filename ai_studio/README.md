@@ -46,3 +46,12 @@ The default STUDIO_ALLOW_API_USAGE=false and STUDIO_DAILY_CALL_CAP=0 keep all re
 ## Source deployment smoke check
 
 Offline GitHub CI runs python -m unittest discover -s ai_studio/tests -v and node --check ai_studio/static/app.js. For an explicit operator-initiated read-only network check, set STUDIO_RUN_SOURCE_SMOKE=true temporarily, inspect the sanitized STUDIO_PUBLIC_SOURCES log, then reset it to false. No model inference, emails, or brokerage orders should occur.
+
+## Verified cross-host source fallback (October 19, 2026 UTC)
+
+Render's shared egress IP was denied by both direct SEC endpoints and could not reach the public FRED graph CSV. To avoid presenting those paths as working, the repository has a separate, tested, DAILY GitHub Actions government-source snapshot. The existing GitHub runner successfully queried SEC filings for 12 tracked stock tickers and downloaded all 8 selected FRED indicators without an API key. It publishes only public official metadata in data/official_sources_snapshot.json on main.
+
+On Nexus, SEC lookup and FRED keyless observations FIRST use that dated snapshot, retrieved from raw.githubusercontent.com (or the GitHub public Contents API if the raw host is blocked). If it is stale (older than 48 hours) the app says stale; if the ticker/series is not in the snapshot it does not invent observations. Direct official endpoints remain as fallback for other tickers or a configured FRED_API_KEY. The public feed is not real-time. openFDA continues to be fetched directly and was tested from Render with 8 results.
+
+Official GitHub Actions: https://github.com/jacarney1990/alpaca-paper-monitor/actions/workflows/official-data-refresh.yml
+Live public dataset: https://github.com/jacarney1990/alpaca-paper-monitor/blob/main/data/official_sources_snapshot.json
