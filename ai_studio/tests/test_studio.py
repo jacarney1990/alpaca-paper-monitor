@@ -335,6 +335,25 @@ class StudioTests(unittest.TestCase):
         self.assertTrue(any(r["status"] == "complete" and
                             r["providers"] == '["Gemini", "Groq"]' for r in records))
 
+    def test_single_provider_team_reserves_synthesis_request(self):
+        # One provider in team mode gets one initial call plus one synthesis.
+        # Thread creation is mocked: this test does not invoke an AI endpoint.
+        import app as studio_app
+        payload = {"topic": "Review a test research hypothesis", "mode": "team",
+                   "workflow": "research", "role": "Researcher",
+                   "providers": ["Gemini"], "demo": False}
+        with patch.dict(os.environ, {"STUDIO_ALLOW_API_USAGE": "true",
+                                     "STUDIO_DAILY_CALL_CAP": "2",
+                                     "GEMINI_API_KEY": "test-placeholder"}):
+            with patch.object(studio_app, "limits", return_value={"daily_limit": 2, "remaining": 2}):
+                with patch.object(studio_app.threading, "Thread") as thread:
+                    response = self.client.post("/api/jobs", json=payload, headers=self.headers)
+                    self.assertEqual(response.status_code, 202)
+                    self.assertEqual(response.json["reserved_calls"], 2)
+                    thread.assert_called_once()
+        with studio_app.connection() as db:
+            db.execute("UPDATE jobs SET status='interrupted' WHERE id=?", (response.json["id"],))
+
     def test_live_calls_blocked_even_if_usage_toggle_on_without_cap(self):
         request = {"topic": "Real investment research",
                    "mode": "team", "workflow": "investment", "role": "Risk Auditor",
