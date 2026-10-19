@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Nexus AI Studio">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1d3d73"/><stop offset="1" stop-color="#0a1229"/>
+    </linearGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#86e8ff"/><stop offset="1" stop-color="#66a4ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="171" fill="none" stroke="#5088bb" stroke-opacity=".55" stroke-width="4"/>
+  <circle cx="256" cy="256" r="135" fill="none" stroke="#76b3e1" stroke-opacity=".35" stroke-width="3" stroke-dasharray="16 16"/>
+  <path d="M256 98l35 123 123 35-123 35-35 123-35-123-123-35 123-35z" fill="url(#spark)"/>
+  <circle cx="100" cy="255" r="17" fill="#99f3d7"/>
+  <circle cx="406" cy="255" r="17" fill="#99f3d7"/>
+  <circle cx="256" cy="100" r="17" fill="#99f3d7"/>
+  <circle cx="256" cy="410" r="17" fill="#99f3d7"/>
+</svg>
