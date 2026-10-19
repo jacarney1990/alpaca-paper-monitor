@@ -301,6 +301,40 @@ class StudioTests(unittest.TestCase):
         self.assertIn("result=PASS", " ".join(logs.output))
         self.assertIn("already started", " ".join(logs.output))
 
+    def test_gemini_groq_team_smoke_is_bounded_and_single_run(self):
+        import app as studio_app
+        peers = ["Gemini", "Groq"]
+        fake = {"initial": [{"provider": p, "status": "complete", "answer": "independent"}
+                            for p in peers],
+                "cross_review": [{"provider": p, "status": "complete", "answer": "review"}
+                                 for p in peers],
+                "synthesis": "Joint recommendation with disagreements addressed.",
+                "completed": 2, "requested": 2, "trade_execution": "DISABLED"}
+        def inline(*, target, args, daemon):
+            class Fake:
+                def start(self):
+                    target(*args)
+            return Fake()
+        with patch.dict(os.environ, {"STUDIO_RUN_LIVE_SMOKE": "duo",
+                                     "STUDIO_ALLOW_API_USAGE": "false",
+                                     "STUDIO_MAX_OUTPUT_TOKENS": "500",
+                                     "GEMINI_API_KEY": "dummy-local",
+                                     "GROQ_API_KEY": "dummy-local"}):
+            with patch("app.run_task", return_value=fake) as model:
+                with patch("app.threading.Thread", side_effect=inline):
+                    with self.assertLogs(studio_app.app.logger, level="WARNING") as logs:
+                        studio_app.start_live_smoke_if_requested()
+                        studio_app.start_live_smoke_if_requested()
+        self.assertEqual(model.call_count, 1)
+        self.assertEqual(model.call_args.args[1], "team")
+        self.assertEqual(model.call_args.args[3], ["Gemini", "Groq"])
+        self.assertIn("max_requests=5", " ".join(logs.output))
+        self.assertIn("result=PASS", " ".join(logs.output))
+        self.assertIn("already started", " ".join(logs.output))
+        records = self.client.get("/api/jobs", headers=self.headers).json
+        self.assertTrue(any(r["status"] == "complete" and
+                            r["providers"] == '["Gemini", "Groq"]' for r in records))
+
     def test_live_calls_blocked_even_if_usage_toggle_on_without_cap(self):
         request = {"topic": "Real investment research",
                    "mode": "team", "workflow": "investment", "role": "Risk Auditor",
