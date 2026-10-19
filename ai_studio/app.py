@@ -12,6 +12,7 @@ from pathlib import Path
 from flask import Flask, jsonify, render_template, request
 from engine import PROVIDERS, ROLES, run_task, run_demo_task, check_provider_key, status as provider_status
 from finance_bridge import BridgeUnavailable, latest_workflows
+from public_sources import SourceError, lookup as lookup_public_source, source_status
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 50000
@@ -111,7 +112,7 @@ def self_test():
         "provider_authentication": "not tested",
         "live_model_calls_tested": False,
         "practice_mode": "available",
-        "finance_bridge": "read-only",
+        "finance_bridge": "read-only", "official_sources": list(source_status()),
         "trade_execution": "DISABLED",
         "usage": limits(),
         "persistence": "ephemeral on free Render hosting; jobs may not survive restarts",
@@ -134,10 +135,50 @@ def check_providers():
         return reject
     # Bound to four fixed provider hosts; no user-provided URL is accepted.
     selected = list(PROVIDERS)
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=min(5, len(selected))) as pool:
         results = dict(zip(selected, pool.map(check_provider_key, selected)))
     return jsonify({"providers": results, "check_type": "credential_metadata_only",
                     "model_inference_performed": False, "brokerage_orders": 0})
+
+
+@app.get("/api/sources/status")
+def source_connections():
+    reject = secured()
+    if reject is not None:
+        return reject
+    return jsonify({"sources": source_status(), "trading": "DISABLED",
+                    "ai_generation_enabled": False,
+                    "note": "Official public datasets; separate from AI model usage."})
+
+
+@app.post("/api/sources/query")
+def query_public_source():
+    reject = secured()
+    if reject is not None:
+        return reject
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Expected a public data query."}), 400
+    source = data.get("source")
+    if source not in ("SEC", "FDA", "FRED"):
+        return jsonify({"error": "Choose SEC, FDA or FRED."}), 400
+    if not isinstance(data.get("ticker", ""), str) or not isinstance(
+            data.get("query", ""), str) or not isinstance(data.get("series", ""), str):
+        return jsonify({"error": "Search must be text."}), 400
+    if any(len(str(data.get(k) or "")) > 80 for k in ("ticker", "query", "series")):
+        return jsonify({"error": "Search is too long."}), 400
+    try:
+        result = lookup_public_source(source, data)
+        return jsonify(result)
+    except SourceError as exc:
+        if exc.code in ("invalid_ticker", "invalid_search", "invalid_fda_dataset",
+                        "unsupported_fred_series", "unknown_source"):
+            return jsonify({"error": "Invalid input: " + exc.code}), 400
+        if exc.code == "rate_limited":
+            return jsonify({"error": "Official source rate limit reached. Please try later.",
+                            "status": exc.code}), 429
+        return jsonify({"error": "Official source unavailable: " + exc.code,
+                        "status": exc.code}), 503
 
 
 @app.get("/api/finance/status")
@@ -179,7 +220,11 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
     try:
         result = (run_demo_task(topic, mode, role, selected, workflow) if demo
                   else run_task(topic, mode, role, selected, workflow))
-        outcome = "complete" if result["completed"] else "failed"
+        label = result.get("team_status")
+        outcome = ("complete" if label == "COMPLETE"
+                   else "partial" if label == "PARTIAL"
+                   else "failed" if label == "FAILED"
+                   else "complete" if result["completed"] else "failed")
     except Exception as exc:
         # Do not return/log provider body, keys or user task content in diagnostics.
         result = {"error": "Unexpected worker failure", "type": type(exc).__name__}
@@ -209,10 +254,10 @@ def create_job():
     if mode not in ("independent", "team") or role not in ROLES or workflow not in (
             "investment", "research", "project"):
         return jsonify({"error": "Invalid workflow, mode or role"}), 400
-    if (not isinstance(selected, list) or not selected or len(selected) > 4 or
+    if (not isinstance(selected, list) or not selected or len(selected) > 5 or
             any(not isinstance(p, str) or p not in PROVIDERS for p in selected) or
             len(set(selected)) != len(selected)):
-        return jsonify({"error": "Select one to four distinct AI providers"}), 400
+        return jsonify({"error": "Select one to five distinct AI providers"}), 400
     if not demo:
         current = provider_status()
         if any(not current[p]["configured"] for p in selected):
