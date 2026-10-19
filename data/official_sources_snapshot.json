@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-10-19T04:13:13.003364+00:00",
+  "updated_at": "2026-10-19T15:50:10.356888+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -470,6 +470,14 @@
         {
           "symbol": "POET",
           "form": "6-K",
+          "date": "2026-10-19",
+          "accession": "0001171843-26-006677",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000117184326006677/f6k_101626.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "6-K",
           "date": "2026-09-04",
           "accession": "0001171843-26-005894",
           "title": "POET • Form 6-K",
@@ -522,14 +530,6 @@
           "accession": "0001493152-26-024093",
           "title": "POET • Form 6-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1437424/000149315226024093/form6-k.htm"
-        },
-        {
-          "symbol": "POET",
-          "form": "424B5",
-          "date": "2026-05-18",
-          "accession": "0001493152-26-024090",
-          "title": "POET • Form 424B5",
-          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000149315226024090/form424b5.htm"
         }
       ],
       "SLDP": [
