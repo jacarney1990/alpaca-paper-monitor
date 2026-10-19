@@ -13,6 +13,79 @@ import public_sources as ps
 class SourcesTest(unittest.TestCase):
     def setUp(self):
         ps._CACHE.clear()
+        # All tests are strictly offline; simulate the GitHub snapshot as
+        # unavailable except in explicit cache-fallback test cases.
+        self.snapshot_stub = patch.object(
+            ps, "_github_snapshot", side_effect=ps.SourceError("snapshot_unavailable"))
+        self.snapshot_stub.start()
+        self.addCleanup(self.snapshot_stub.stop)
+
+    def test_sec_snapshot_fallback_from_current_official_github_data(self):
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        content = {
+            "schema": 1, "read_only": True, "updated_at": now,
+            "sec": {"status": "ok", "stale": False,
+                    "filings": {"CRSP": [{
+                        "accession": "0001193125-26-330644",
+                        "title": "CRSP • Form 8-K", "date": "2026-08-03",
+                        "url": "https://www.sec.gov/Archives/edgar/data/1674416/"
+                               "000119312526330644/crsp-20260803.htm"}]}},
+            "fred": {"status": "ok", "series": {}}
+        }
+        with patch.object(ps, "_github_snapshot", return_value=content):
+            with patch.object(ps, "_get_json") as direct:
+                found = ps.sec_filings("CRSP")
+        direct.assert_not_called()
+        self.assertEqual(found["status"], "ok")
+        self.assertTrue(found["snapshot"])
+        self.assertFalse(found["stale"])
+        self.assertEqual(len(found["items"]), 1)
+        self.assertIn("2026-08-03", found["items"][0]["date"])
+
+    def test_fred_snapshot_fallback_works_without_key(self):
+        from datetime import datetime, timezone
+        current = datetime.now(timezone.utc).isoformat()
+        content = {
+            "schema": 1, "read_only": True, "updated_at": current,
+            "sec": {"status": "ok", "filings": {}},
+            "fred": {"status": "ok", "stale": False,
+                     "method": "Public FRED graph CSV",
+                     "series": {"UNRATE": [{"date": "2026-08-01", "value": "4.3"}]}}
+        }
+        with patch.dict(os.environ, {"FRED_API_KEY": ""}):
+            with patch.object(ps, "_github_snapshot", return_value=content):
+                with patch.object(ps, "_get_csv") as direct:
+                    found = ps.fred_observations("UNRATE")
+        direct.assert_not_called()
+        self.assertEqual(found["status"], "ok")
+        self.assertEqual(found["items"][0]["value"], "4.3")
+        self.assertIn("Public FRED", found["note"])
+
+    def test_old_cache_is_explicitly_stale_never_mislabeled_fresh(self):
+        content = {
+            "schema": 1, "read_only": True,
+            "updated_at": "2020-01-01T00:00:00+00:00",
+            "sec": {"status": "ok", "stale": False, "filings": {"CRSP": []}},
+            "fred": {"status": "ok", "stale": False, "method": "Public FRED graph CSV",
+                     "series": {"UNRATE": [{"date": "2020-01-01", "value": "3.3"}]}}
+        }
+        with patch.dict(os.environ, {"FRED_API_KEY": ""}):
+            with patch.object(ps, "_github_snapshot", return_value=content):
+                found = ps.fred_observations("UNRATE")
+        self.assertTrue(found["stale"])
+        self.assertEqual(found["status"], "stale")
+
+    def test_github_snapshot_validates_shape_and_does_not_contact_models(self):
+        entry = {"schema": 1, "read_only": True,
+                 "sec": {"status": "ok", "filings": {}},
+                 "fred": {"status": "ok", "series": {}}}
+        with patch.object(ps, "_get_json", return_value=entry) as get:
+            with patch.object(ps, "_github_snapshot", wraps=ps._github_snapshot) as snapshot:
+                item = snapshot()
+        self.assertEqual(item["schema"], 1)
+        self.assertEqual(get.call_count, 1)
+        self.assertNotIn("api_key", json.dumps(item))
 
     def test_sec_filings_have_only_official_provenance(self):
         company = {"0": {"ticker": "CRSP", "title": "CRISPR Therapeutics", "cik_str": 12345}}
