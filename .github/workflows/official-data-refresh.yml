@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - feature/official-public-data-cache
+      - fix/complete-fred-series
     paths:
       - 'official_sources_snapshot.py'
       - 'tests/test_official_snapshot.py'

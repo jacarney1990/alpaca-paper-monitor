@@ -19,7 +19,8 @@ from urllib.request import Request, urlopen
 import intelligence as base
 
 OUTPUT = Path("data/official_sources_snapshot.json")
-SERIES = ("UNRATE", "FEDFUNDS", "CPIAUCSL", "DGS10", "GDP", "PAYEMS")
+SERIES = ("UNRATE", "FEDFUNDS", "CPIAUCSL", "DGS10", "GDP", "PAYEMS",
+          "PCEPI", "INDPRO")
 SEC_FORMS = {"8-K", "10-K", "10-Q", "S-1", "S-3", "424B5", "20-F", "6-K"}
 MAX_BYTES = 1_800_000
 

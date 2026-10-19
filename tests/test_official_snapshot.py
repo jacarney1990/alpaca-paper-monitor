@@ -48,6 +48,9 @@ class SnapshotTests(unittest.TestCase):
                 result = gov.fred_snapshot()
         self.assertEqual(result["status"], "ok")
         self.assertEqual(len(result["series"]), len(gov.SERIES))
+        self.assertEqual(len(gov.SERIES), 8)
+        self.assertIn("PCEPI", result["series"])
+        self.assertIn("INDPRO", result["series"])
         self.assertEqual(result["series"]["UNRATE"][0]["value"], "3.0")
         self.assertEqual(remote.call_count, len(gov.SERIES))
 
