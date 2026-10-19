@@ -241,8 +241,8 @@ async function searchOfficialSource(source,payload,button){
       ' | '+(item.date||'date not supplied')+
       ' | '+(item.summary||'')+' | '+(item.url||''));
     const topicText='Review these '+source+' public records critically. Distinguish official metadata, '+
-      'unverified conclusions, and research gaps. Do not recommend trades.\\n'+
-      passages.join('\\n')+'\\nOriginal source: '+(data.reference||'');
+      'unverified conclusions, and research gaps. Do not recommend trades.\n'+
+      passages.join('\n')+'\nOriginal source: '+(data.reference||'');
     $('topic').value=topicText.slice(0,5000);
     chooseWorkflow('research');
     tell('Public findings copied into your mission. Free practice is simulated; real AI requests still require authorization.');
