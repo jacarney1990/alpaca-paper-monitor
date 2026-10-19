@@ -361,7 +361,7 @@ class StudioTests(unittest.TestCase):
         self.assertEqual(response.json["brokerage_orders"], 0)
         self.assertEqual(response.json["providers"]["OpenAI"]["status"], "valid")
         self.assertEqual(response.json["providers"]["Claude"]["status"], "missing")
-        self.assertEqual(checked.call_count, 4)
+        self.assertEqual(checked.call_count, len(engine.PROVIDERS))
 
     def test_provider_key_check_makes_no_inference_requests(self):
         with patch.dict(os.environ, {"GROQ_API_KEY": "dummy-key"}):
