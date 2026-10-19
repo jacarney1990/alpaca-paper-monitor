@@ -1,0 +1,31 @@
+{
+  "id": "/nexus-public-preview",
+  "name": "Nexus AI Studio · Public Preview",
+  "short_name": "Nexus Demo",
+  "description": "Explore a free, shareable Nexus multi-AI research walkthrough. No account or model calls required.",
+  "start_url": "/demo?installed=1",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080f20",
+  "theme_color": "#0b1324",
+  "icons": [
+    {
+      "src": "/static/nexus-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/nexus-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/nexus-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
