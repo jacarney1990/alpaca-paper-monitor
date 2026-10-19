@@ -1,0 +1,54 @@
+name: Nexus technical handoff source snapshots
+on:
+  push:
+    branches: [feature/multi-ai-studio]
+    paths: ['.github/workflows/nexus-technical-handoff-snapshot.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export-tracked-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact Studio branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/multi-ai-studio
+          path: studio
+          persist-credentials: false
+      - name: Checkout current investment main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: investment-main
+          persist-credentials: false
+      - name: Record refs and produce tracked-source-only archives
+        run: |
+          mkdir -p out
+          echo "Studio branch: feature/multi-ai-studio" > out/SNAPSHOT-COMMITS.txt
+          echo "Studio commit: $(git -C studio rev-parse HEAD)" >> out/SNAPSHOT-COMMITS.txt
+          echo "Investment branch: main" >> out/SNAPSHOT-COMMITS.txt
+          echo "Investment commit: $(git -C investment-main rev-parse HEAD)" >> out/SNAPSHOT-COMMITS.txt
+          git -C studio archive --format=zip --prefix=Nexus-Studio-Repository/ -o ../out/Nexus-Studio-Repository.zip HEAD
+          git -C investment-main archive --format=zip --prefix=Nexus-Investment-Main/ -o ../out/Nexus-Investment-Main.zip HEAD
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          for p in Path('out').glob('*.zip'):
+              with ZipFile(p) as z:
+                  names = z.namelist()
+                  assert z.testzip() is None
+                  assert len(names) >= 40
+                  assert not any('/.git/' in x or
+                                 x.endswith(('.env', '.sqlite', '.sqlite3', '.db', '.pem', '.key')) or
+                                 '__pycache__' in x for x in names)
+                  print(p, len(names), 'tracked entries, verified')
+          PY
+      - name: Attach complete branch snapshots for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nexus-Technical-Handoff-Snapshots
+          path: out/*
+          retention-days: 90
+          if-no-files-found: error
