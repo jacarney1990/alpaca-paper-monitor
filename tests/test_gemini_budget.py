@@ -69,6 +69,47 @@ class TestGeminiBudget(unittest.TestCase):
         self.assertNotIn('test-token', body)
         self.assertEqual(json.loads(body)['used'], 1)
 
+    def test_read_only_preflight_finds_available_budget_without_reservation(self):
+        calls = []
+        def get_only(path, method='GET', payload=None):
+            calls.append(method)
+            return []
+        with patch.dict(os.environ, {'GEMINI_DAILY_REQUEST_CAP': '12',
+                                      'GITHUB_REPOSITORY': 'example/private',
+                                      'GITHUB_TOKEN': 'test-token'}):
+            with patch.object(q.base, 'github', side_effect=get_only):
+                self.assertTrue(q.has_remaining_capacity())
+        self.assertEqual(calls, ['GET'])
+
+    def test_read_only_preflight_defers_exhausted_budget_and_preserves_counter(self):
+        now = datetime.now(timezone.utc)
+        pt = now.astimezone(q.PACIFIC).date().isoformat()
+        state = {'schema': 1, 'date_pt': pt, 'used': 12,
+                 'last_attempt_utc': now.isoformat()}
+        calls = []
+        def get_only(path, method='GET', payload=None):
+            calls.append(method)
+            return [{'number': 6, 'title': q.ISSUE_TITLE, 'body': json.dumps(state)}]
+        with patch.dict(os.environ, {'GEMINI_DAILY_REQUEST_CAP': '12',
+                                      'GITHUB_REPOSITORY': 'example/private',
+                                      'GITHUB_TOKEN': 'test-token'}):
+            with patch.object(q.base, 'github', side_effect=get_only):
+                self.assertFalse(q.has_remaining_capacity())
+        self.assertEqual(calls, ['GET'])
+        self.assertEqual(state['used'], 12)
+
+    def test_read_only_preflight_fails_closed_on_corrupt_budget(self):
+        state = {'schema': 1, 'date_pt': 'invalid', 'used': 1}
+        with patch.dict(os.environ, {'GEMINI_DAILY_REQUEST_CAP': '12',
+                                      'GITHUB_REPOSITORY': 'example/private',
+                                      'GITHUB_TOKEN': 'test-token'}):
+            with patch.object(q.base, 'github',
+                              return_value=[{'number': 6, 'title': q.ISSUE_TITLE,
+                                             'body': json.dumps(state)}]):
+                with self.assertRaisesRegex(q.GeminiBudgetError,
+                                             'BUDGET_STATE_INVALID'):
+                    q.has_remaining_capacity()
+
     def test_budget_unavailable_aborts_request_before_http(self):
         # Gemini must never be contacted if quota service cannot reserve.
         with patch.dict(os.environ, {'GEMINI_DAILY_REQUEST_CAP': '12'}, clear=False):

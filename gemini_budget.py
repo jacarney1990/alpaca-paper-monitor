@@ -80,6 +80,41 @@ def next_reservation(body, now, cap):
                   'last_attempt_utc': updated.isoformat(timespec='seconds')}
 
 
+
+def has_remaining_capacity():
+    """Read-only local quota preflight; never reserves or sends model requests.
+
+    Returns False only when the shared Pacific-day cap is exhausted. Any
+    malformed/inaccessible budget state fails closed before other providers
+    incur unnecessary calls. This is not a provider quota guarantee.
+    """
+    cap = check_cap(os.environ.get('GEMINI_DAILY_REQUEST_CAP'))
+    repo = os.environ.get('GITHUB_REPOSITORY', '')
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo):
+        raise GeminiBudgetError('BUDGET_REPO_INVALID')
+    if not os.environ.get('GITHUB_TOKEN'):
+        raise GeminiBudgetError('BUDGET_GITHUB_TOKEN_MISSING')
+    with _LOCK:
+        try:
+            issues = base.github(f'/repos/{repo}/issues?state=all&per_page=100')
+            found = [x for x in issues if 'pull_request' not in x
+                     and x.get('title') == ISSUE_TITLE]
+            if len(found) > 1:
+                raise GeminiBudgetError('BUDGET_DUPLICATE_ISSUES')
+            body = json.loads(found[0].get('body') or '') if found else None
+            try:
+                next_reservation(body, datetime.now(timezone.utc), cap)
+            except GeminiBudgetError as exc:
+                if str(exc) == 'GEMINI_RESEARCH_DAILY_BUDGET_EXHAUSTED':
+                    return False
+                raise
+            return True
+        except GeminiBudgetError:
+            raise
+        except (ValueError, KeyError, TypeError, OSError) as exc:
+            raise GeminiBudgetError('BUDGET_STATE_OR_GITHUB_UNAVAILABLE') from exc
+
+
 def reserve():
     """Reserve one attempt in the PRIVATE GitHub issue before calling Gemini."""
     cap = check_cap(os.environ.get('GEMINI_DAILY_REQUEST_CAP'))
