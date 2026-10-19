@@ -1,0 +1,44 @@
+name: Generate Nexus install icons
+on:
+  push:
+    branches: [feature/multi-ai-studio]
+    paths:
+      - 'ai_studio/tools/build_icons.py'
+      - '.github/workflows/nexus-icon-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-icons:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate dependency-free PNG icons
+        run: python ai_studio/tools/build_icons.py
+      - name: Verify PNG signatures and dimensions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          for size in (192, 512):
+              data = Path(f"ai_studio/static/nexus-icon-{size}.png").read_bytes()
+              assert data[:8] == b"\x89PNG\r\n\x1a\n"
+              assert struct.unpack("!II", data[16:24]) == (size, size)
+              assert len(data) > 2000
+              print(size, "pixel icon verified", len(data), "bytes")
+          PY
+      - name: Commit only the generated public icon images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai_studio/static/nexus-icon-192.png ai_studio/static/nexus-icon-512.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate Android Nexus icon assets"
+            git push
+          fi
