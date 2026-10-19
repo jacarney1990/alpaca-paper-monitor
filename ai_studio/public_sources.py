@@ -258,8 +258,9 @@ def fred_observations(series):
             if not reader.fieldnames or series not in reader.fieldnames:
                 raise SourceError("invalid_source_data")
             from collections import deque
-            observations = list(deque(((x.get("DATE") or x.get("observation_date")),
-                                       x.get(series)) for x in reader, maxlen=24))
+            observations = list(deque(
+                ((x.get("DATE") or x.get("observation_date"), x.get(series))
+                 for x in reader), maxlen=24))
         items = []
         for date, value in observations:
             if not isinstance(value, str) or value in ("", ".") or not date:
