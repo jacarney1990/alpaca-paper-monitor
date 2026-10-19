@@ -1,0 +1,46 @@
+{
+  "id": "/nexus-ai-studio",
+  "name": "Nexus AI Intelligence Studio",
+  "short_name": "Nexus AI",
+  "description": "Multi-AI research, official SEC/FDA/FRED information, and read-only investment insights. Private access required.",
+  "start_url": "/?installed=1",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080f20",
+  "theme_color": "#0b1324",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/nexus-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/nexus-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/nexus-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nexus Workspace",
+      "short_name": "Workspace",
+      "url": "/",
+      "description": "Open private Nexus research workspace"
+    },
+    {
+      "name": "Public Preview",
+      "short_name": "Preview",
+      "url": "/demo",
+      "description": "Shareable practice preview without an access token"
+    }
+  ]
+}
