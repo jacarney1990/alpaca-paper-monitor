@@ -231,6 +231,24 @@ async function searchOfficialSource(source,payload,button){
    empty.className='placeholder';empty.textContent='No matches returned. Try a different ticker or search term.';
    box.appendChild(empty);}
   sourceLink(box,data.reference,'Official dataset ↗');
+  if((data.items||[]).length){
+   const use=document.createElement('button');use.type='button';
+   use.className='btn secondary source-use';
+   use.textContent='Use these official findings in a mission →';
+   use.onclick=()=>{
+    const passages=(data.items||[]).map(item=>
+      '- '+(item.title||'Official record')+
+      ' | '+(item.date||'date not supplied')+
+      ' | '+(item.summary||'')+' | '+(item.url||''));
+    const topicText='Review these '+source+' public records critically. Distinguish official metadata, '+
+      'unverified conclusions, and research gaps. Do not recommend trades.\\n'+
+      passages.join('\\n')+'\\nOriginal source: '+(data.reference||'');
+    $('topic').value=topicText.slice(0,5000);
+    chooseWorkflow('research');
+    tell('Public findings copied into your mission. Free practice is simulated; real AI requests still require authorization.');
+   };
+   box.appendChild(use);
+  }
   tell(source+' source check complete. No AI tokens or brokerage calls used.');
  }catch(e){
   box.replaceChildren();
