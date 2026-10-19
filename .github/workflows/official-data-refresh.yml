@@ -1,0 +1,71 @@
+name: Official SEC and FRED data refresh (read only)
+on:
+  push:
+    branches:
+      - main
+      - feature/official-public-data-cache
+    paths:
+      - 'official_sources_snapshot.py'
+      - 'tests/test_official_snapshot.py'
+      - '.github/workflows/official-data-refresh.yml'
+  schedule:
+    # One read-only publication per day. No model requests or orders.
+    - cron: '17 15 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: official-data-snapshot
+  cancel-in-progress: false
+
+jobs:
+  source-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile official public source adapters
+        run: python -m py_compile official_sources_snapshot.py
+      - name: Test all offline repository safety controls
+        run: python -m unittest discover -s tests -v
+
+  publish:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: source-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch official SEC data and public FRED observations (no AI calls)
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python official_sources_snapshot.py
+      - name: Save read-only public snapshot to GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/official_sources_snapshot.json
+          if git diff --cached --quiet; then
+            echo "No official data changes"
+          else
+            git commit -m "Refresh official SEC and FRED public research snapshot [skip ci]"
+            git push
+          fi
+      - name: Save official source audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-source-data-${{ github.run_id }}
+          path: data/official_sources_snapshot.json
+          if-no-files-found: warn
+          retention-days: 30
