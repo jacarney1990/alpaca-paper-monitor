@@ -6,6 +6,8 @@
 const CACHE = 'nexus-shell-v1';
 const PUBLIC_ASSETS = [
   '/static/nexus-icon.svg',
+  '/static/nexus-icon-192.png',
+  '/static/nexus-icon-512.png',
   '/static/offline.html',
   '/static/style.css',
   '/static/install.js',
