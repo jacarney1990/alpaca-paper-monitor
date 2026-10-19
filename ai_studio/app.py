@@ -463,5 +463,35 @@ def start_live_smoke_if_requested():
 
 start_live_smoke_if_requested()
 
+
+def run_public_source_smoke_if_requested():
+    """Opt-in source-only deployment check. No AI or brokerage calls."""
+    if os.getenv("STUDIO_RUN_SOURCE_SMOKE", "false").lower() != "true":
+        return
+    inputs = {
+        "SEC": {"ticker": "CRSP"},
+        "FDA": {"dataset": "drug_recalls", "query": "aspirin"},
+        "FRED": {"series": "UNRATE"},
+    }
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {name: executor.submit(lookup_public_source, name, payload)
+                   for name, payload in inputs.items()}
+        results = {}
+        for name, future in futures.items():
+            try:
+                report = future.result(timeout=22)
+                results[name] = (report["status"], len(report.get("items", [])))
+            except SourceError as exc:
+                results[name] = (exc.code, 0)
+            except Exception:
+                results[name] = ("unexpected_source_error", 0)
+    app.logger.warning(
+        "STUDIO_PUBLIC_SOURCES SEC=%s FDA=%s FRED=%s "
+        "ai_inference_calls=0 broker_orders=0",
+        results["SEC"], results["FDA"], results["FRED"]
+    )
+
+run_public_source_smoke_if_requested()
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
