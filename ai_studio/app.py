@@ -1,6 +1,8 @@
 """AI Studio API. Isolated from the existing paper-trading dashboard."""
 import hmac
 import json
+from io import BytesIO
+from zipfile import ZIP_DEFLATED, ZipFile
 import os
 import sqlite3
 import threading
@@ -9,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from engine import PROVIDERS, ROLES, run_task, run_demo_task, check_provider_key, status as provider_status
 from finance_bridge import BridgeUnavailable, latest_workflows
 from public_sources import SourceError, lookup as lookup_public_source, source_status
@@ -72,6 +74,104 @@ def secure_headers(response):
 @app.get("/")
 def home():
     return render_template("index.html")
+
+
+# PUBLIC preview and source distribution. Neither route reads environment
+# secrets, session tokens, provider credentials, SQLite, or mission history.
+@app.get("/demo")
+def public_demo():
+    return render_template("demo.html")
+
+
+@app.get("/service-worker.js")
+def service_worker():
+    response = send_from_directory(app.static_folder, "service-worker.js",
+                                   mimetype="application/javascript")
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
+
+
+# Explicit allowlist: never zip environment variables, .env, SQLite databases,
+# account records, Git metadata, logs, or the original brokerage-monitor app.
+STUDIO_SHARE_FILES = (
+    "app.py", "engine.py", "finance_bridge.py", "public_sources.py",
+    "README.md", "templates/index.html", "templates/demo.html",
+    "static/app.js", "static/demo.js", "static/install.js",
+    "static/style.css", "static/offline.html", "static/nexus-icon.svg",
+    "static/manifest.webmanifest", "static/service-worker.js",
+    "tests/test_studio.py", "tests/test_public_sources.py",
+)
+STUDIO_DOWNLOAD_README = """# Nexus AI Studio: standalone source package
+
+This ZIP contains the isolated Nexus Studio web application, safe demo,
+official SEC/FDA/FRED research connectors, and offline tests.
+It contains NO API keys, saved research history, access codes, credentials,
+brokerage orders, or copies of the existing Alpaca investment monitor.
+
+## Run locally or on your own Render service
+
+1. Install Python 3.12+ and unzip this package.
+2. In the extracted Nexus-AI-Studio folder run:
+       python -m pip install -r requirements.txt
+3. Configure a strong STUDIO_ACCESS_TOKEN as an ENVIRONMENT VARIABLE
+   in your own host. Do NOT commit it to Git.
+4. Start the app from the package root:
+       gunicorn --chdir ai_studio --workers 1 --threads 4 --timeout 120 app:app
+   For local Windows use: cd ai_studio && python app.py
+5. Visit http://localhost:5000 if using python app.py (or your host URL).
+   Public preview: /demo
+   Private workspace: /
+   Shareable ZIP: /download
+
+API model keys are optional, and all private credentials must be configured
+separately on your own server. NEVER copy another user's private keys.
+STUDIO_ALLOW_API_USAGE=false and STUDIO_DAILY_CALL_CAP=0 are the safe defaults.
+The public demonstration uses prewritten sample text and makes no AI calls.
+
+The SEC/FRED GitHub snapshot connector in this source package points to the
+original public repository's official-data snapshot. If you need your own
+refreshes, set up an equivalent government-source workflow and adjust the
+fixed snapshot URL in ai_studio/public_sources.py. FDA public research can
+be accessed with no key (usage limits apply).
+
+NOTICE: This is the source ZIP, not a signed Android APK or an app-store app.
+For Android installation, open the HTTPS-hosted Nexus site in Chrome and
+choose Install app or Add to Home screen.
+The Render free plan may use ephemeral SQLite storage, so do not rely on it
+to preserve long-running jobs or mission history across restarts.
+"""
+
+
+@app.get("/download")
+def download_studio_source():
+    """Build an independent, credential-free ZIP from known tracked files."""
+    root = Path(__file__).resolve().parent
+    archive_bytes = BytesIO()
+    with ZipFile(archive_bytes, "w", compression=ZIP_DEFLATED,
+                 compresslevel=7) as archive:
+        for relative in STUDIO_SHARE_FILES:
+            # Only the static, human-reviewed allowlist may enter the ZIP.
+            file_path = root / relative
+            archive.write(file_path, "Nexus-AI-Studio/ai_studio/" + relative)
+        archive.write(root.parent / "requirements.txt",
+                      "Nexus-AI-Studio/requirements.txt")
+        archive.writestr("Nexus-AI-Studio/README-START-HERE.md",
+                         STUDIO_DOWNLOAD_README)
+        archive.writestr("Nexus-AI-Studio/.env.example",
+                         "STUDIO_ACCESS_TOKEN=CHOOSE_A_PRIVATE_RANDOM_PASSWORD\n"
+                         "STUDIO_ALLOW_API_USAGE=false\n"
+                         "STUDIO_DAILY_CALL_CAP=0\n"
+                         "OPENAI_API_KEY=\nGEMINI_API_KEY=\nGROQ_API_KEY=\n"
+                         "ANTHROPIC_API_KEY=\nOPENROUTER_API_KEY=\n"
+                         "FRED_API_KEY=\nOPENFDA_API_KEY=\n"
+                         "SEC_USER_AGENT=\n")
+    archive_bytes.seek(0)
+    result = send_file(archive_bytes, as_attachment=True,
+                       download_name="Nexus-AI-Studio-Source.zip",
+                       mimetype="application/zip")
+    result.headers["X-Nexus-Package"] = "Public-source-only; excludes secrets and data"
+    return result
+
 
 @app.get("/health")
 def health():
