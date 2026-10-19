@@ -328,7 +328,8 @@ def _live_smoke_worker(job_id):
     """One tiny real multi-model test; never interacts with brokerages."""
     selected_mode = os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower()
     gemini_only = selected_mode == "gemini_only"
-    providers = ["Gemini"] if gemini_only else ["OpenAI", "Gemini", "Groq"]
+    duo = selected_mode == "duo"
+    providers = ["Gemini"] if gemini_only else ["Gemini", "Groq"] if duo else ["OpenAI", "Gemini", "Groq"]
     diagnostic = selected_mode in ("diagnose", "gemini_only")
     mode = "independent" if diagnostic else "team"
     try:
@@ -355,7 +356,7 @@ def _live_smoke_worker(job_id):
             "STUDIO_LIVE_SMOKE result=%s stage=%s initial=%s errors=%s "
             "reviews=%s synthesis=%s max_requests=%d broker_orders=0 preview=%s",
             state, mode, initial, errors, reviews, synthesized,
-            1 if gemini_only else 3 if diagnostic else 7, excerpt
+            1 if gemini_only else 5 if duo else 3 if diagnostic else 7, excerpt
         )
     except Exception as exc:
         result = {"error": "Smoke test failed safely", "type": type(exc).__name__}
@@ -373,16 +374,18 @@ def start_live_smoke_if_requested():
     synthesis. Ordinary live API calls remain disabled for users.
     """
     smoke_mode = os.getenv("STUDIO_RUN_LIVE_SMOKE", "false").lower()
-    if smoke_mode not in ("true", "diagnose", "gemini_only"):
+    if smoke_mode not in ("true", "diagnose", "gemini_only", "duo"):
         return
     from engine import output_token_limit
-    if output_token_limit() > (350 if smoke_mode == "gemini_only" else 600):
+    if output_token_limit() > (350 if smoke_mode == "gemini_only" else 550 if smoke_mode == "duo" else 600):
         app.logger.warning("STUDIO_LIVE_SMOKE blocked: output token cap exceeds 600")
         return
     if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() == "true":
         app.logger.warning("STUDIO_LIVE_SMOKE blocked: ordinary API usage must remain off")
         return
-    test_providers = ["Gemini"] if smoke_mode == "gemini_only" else ["OpenAI", "Gemini", "Groq"]
+    test_providers = (["Gemini"] if smoke_mode == "gemini_only"
+                      else ["Gemini", "Groq"] if smoke_mode == "duo"
+                      else ["OpenAI", "Gemini", "Groq"])
     for name in test_providers:
         if not provider_status()[name]["configured"]:
             app.logger.warning("STUDIO_LIVE_SMOKE blocked: missing provider %s", name)
@@ -407,7 +410,8 @@ def start_live_smoke_if_requested():
         "STUDIO_LIVE_SMOKE starting once; stage=%s providers=%s "
         "max_requests=%d max_output_tokens=%d api_usage_enabled=false orders=0",
         smoke_mode, ",".join(test_providers),
-        1 if smoke_mode == "gemini_only" else 3 if smoke_mode == "diagnose" else 7,
+        1 if smoke_mode == "gemini_only" else 5 if smoke_mode == "duo"
+        else 3 if smoke_mode == "diagnose" else 7,
         output_token_limit()
     )
     threading.Thread(target=_live_smoke_worker, args=(job_id,), daemon=True).start()
