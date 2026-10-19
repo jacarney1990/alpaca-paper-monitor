@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let token='', activeId=null, timer=null, statusCache=null, currentWorkflow='research';
-const KEY_NAMES={OpenAI:'OPENAI_API_KEY',Claude:'ANTHROPIC_API_KEY',Gemini:'GEMINI_API_KEY',Groq:'GROQ_API_KEY'};
+const KEY_NAMES={OpenAI:'OPENAI_API_KEY',Claude:'ANTHROPIC_API_KEY',Gemini:'GEMINI_API_KEY',Groq:'GROQ_API_KEY','OpenRouter Free':'OPENROUTER_API_KEY'};
 function tell(message,error=false){const el=$('feedback');el.textContent=message;el.classList.toggle('error',error);}
 async function api(path,opts={}){
  if(!token)throw Error('Connect your private workspace first.');
@@ -33,6 +33,7 @@ async function connect(){
   $('health-auth').textContent='Connected';
   tell('Connected! Your team and tools are ready for practice missions.');
   loadFinance().catch(()=>{});
+  loadSourceStatus().catch(()=>{});
  }catch(e){
   token='';$('access-state').textContent='● Not connected';$('access-state').className='status-pill neutral';
   $('health-auth').textContent='Not connected';
@@ -42,7 +43,7 @@ async function connect(){
 function providerCard(name,config){
  const el=document.createElement('div');el.className='provider';
  const label=document.createElement('label');
- const input=document.createElement('input');input.type='checkbox';input.value=name;input.checked=Boolean(config.configured);label.append(input,document.createTextNode(name));
+ const input=document.createElement('input');input.type='checkbox';input.value=name;input.checked=Boolean(config.configured)&&name!=='OpenAI';label.append(input,document.createTextNode(name));
  const key=document.createElement('small');key.className=config.configured?'saved':'missing';
  key.textContent=config.configured?'✓ API key saved':'○ Key missing (practice still works)';
  const model=document.createElement('small');model.textContent=config.model||'Model not specified';
@@ -53,7 +54,7 @@ async function loadProviders(){
  $('providers').replaceChildren();
  const entries=Object.entries(data.providers),count=entries.filter(([name,cfg])=>cfg.configured).length;
  for(const [name,config] of entries)$('providers').appendChild(providerCard(name,config));
- $('count').textContent=count+'/4';$('health-keys').textContent=count+' of 4 keys saved';
+ $('count').textContent=count+'/'+entries.length;$('health-keys').textContent=count+' of '+entries.length+' keys saved';
  $('missing-keys').replaceChildren();
  const missing=entries.filter(([name,cfg])=>!cfg.configured);
  for(const [name] of missing){const el=document.createElement('code');el.textContent=KEY_NAMES[name];$('missing-keys').appendChild(el);}
@@ -102,7 +103,7 @@ async function showJob(id){
   for(const entry of result.output.cross_review||[])block('Peer feedback · '+entry.provider,entry.answer||entry.error||'No response');
   if(result.output.synthesis)block('Combined answer',result.output.synthesis);
   if(result.output.completed!==undefined)block('Mission summary',
-   result.output.completed+'/'+result.output.requested+' first-round participants. Brokerage orders: disabled.'+
+   result.output.completed+'/'+result.output.requested+' first-round participants. Team completion: '+(result.output.team_status||'practice')+'. Brokerage orders: disabled.'+
    (demo?' All answers above are simulations, not genuine AI output.':''));
  }
  jump('history-panel');
@@ -152,6 +153,7 @@ $('nav-command').onclick=()=>{navActive('nav-command');jump('home');};
 $('nav-research').onclick=()=>chooseWorkflow('research');
 $('nav-investment').onclick=()=>{chooseWorkflow('investment');if(token)loadFinance();};
 $('nav-project').onclick=()=>chooseWorkflow('project');
+$('nav-sources').onclick=()=>{navActive('nav-sources');jump('data-hub');};
 $('nav-history').onclick=()=>{navActive('nav-history');jump('history-panel');};
 document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('[data-jump]').forEach(x=>x.classList.toggle('mob-active',x===b));
@@ -178,3 +180,76 @@ async function verifyKeys(){
  }finally{button.disabled=false;}
 }
 $('verify-keys').onclick=verifyKeys;
+
+
+// Source Hub: official allowlisted links, text-only rendering, no paid AI or orders.
+const SOURCE_HOSTS=/^https:\/\/(www\.sec\.gov|data\.sec\.gov|api\.fda\.gov|fred\.stlouisfed\.org)\//i;
+function sourceLine(parent,label,value){
+ const line=document.createElement('p');line.className='source-line';
+ const strong=document.createElement('strong');strong.textContent=label+' ';
+ line.append(strong,document.createTextNode(String(value??'')));parent.appendChild(line);
+}
+function sourceLink(parent,url,label){
+ if(typeof url!=='string'||!SOURCE_HOSTS.test(url))return;
+ const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+ a.textContent=label||'View original record ↗';parent.appendChild(a);
+}
+async function loadSourceStatus(){
+ const data=await api('/api/sources/status');
+ const target=$('source-status');target.replaceChildren();
+ for(const [name,entry] of Object.entries(data.sources||{})){
+  const label=document.createElement('span');label.className='source-chip';
+  label.textContent='✓ '+name+' · '+entry.mode;target.appendChild(label);
+ }
+}
+async function searchOfficialSource(source,payload,button){
+ const box=$('source-results'),oldText=button.textContent;button.disabled=true;
+ box.replaceChildren();
+ const heading=document.createElement('h3');heading.textContent='Looking up '+source+' official records…';
+ box.appendChild(heading);
+ try{
+  const data=await api('/api/sources/query',{method:'POST',
+   body:JSON.stringify({source,...payload})});
+  box.replaceChildren();
+  const title=document.createElement('h3');title.textContent=source+' · '+(
+   data.status==='ok'?'Official results':data.status==='no_results'?'No matching records':'Source status');
+  box.appendChild(title);
+  const note=document.createElement('p');note.className='muted-note';
+  note.textContent=data.note||'Official data, not model-generated research.';box.appendChild(note);
+  sourceLine(box,'Checked:',data.fetched_at?.replace('T',' ').slice(0,16)||'Now');
+  for(const item of data.items||[]){
+   const card=document.createElement('article');card.className='source-record';
+   const header=document.createElement('strong');header.textContent=item.title||'Official record';
+   const date=document.createElement('small');date.textContent=item.date||'Date unavailable';
+   const desc=document.createElement('p');desc.textContent=item.summary||'Open official source for details';
+   card.append(header,date,desc);
+   if(item.value!==undefined)sourceLine(card,'Observation:',item.value);
+   sourceLink(card,item.url,'Open official source ↗');
+   box.appendChild(card);
+  }
+  if(!(data.items||[]).length){const empty=document.createElement('p');
+   empty.className='placeholder';empty.textContent='No matches returned. Try a different ticker or search term.';
+   box.appendChild(empty);}
+  sourceLink(box,data.reference,'Official dataset ↗');
+  tell(source+' source check complete. No AI tokens or brokerage calls used.');
+ }catch(e){
+  box.replaceChildren();
+  const header=document.createElement('h3');header.textContent=source+' is unavailable';
+  const body=document.createElement('p');body.textContent=e.message;
+  box.append(header,body);
+  tell(e.message,true);
+ }finally{button.disabled=false;button.textContent=oldText;jump('source-results');}
+}
+$('sec-form').addEventListener('submit',e=>{
+ e.preventDefault();searchOfficialSource('SEC',{ticker:$('sec-ticker').value},
+  $('sec-form').querySelector('button[type=submit]'));
+});
+$('fda-form').addEventListener('submit',e=>{
+ e.preventDefault();searchOfficialSource('FDA',{
+  dataset:$('fda-dataset').value,query:$('fda-query').value},
+  $('fda-form').querySelector('button[type=submit]'));
+});
+$('fred-form').addEventListener('submit',e=>{
+ e.preventDefault();searchOfficialSource('FRED',{series:$('fred-series').value},
+  $('fred-form').querySelector('button[type=submit]'));
+});
