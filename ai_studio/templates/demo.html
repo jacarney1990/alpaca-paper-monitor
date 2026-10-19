@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1324">
+<meta name="description" content="Try a free public demonstration of Nexus AI Studio, the multi-AI research workspace with SEC, FDA and FRED data connections.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nexus AI">
+<title>Nexus AI Studio · Public Preview</title>
+<link rel="icon" href="/static/nexus-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/nexus-icon.svg">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="stylesheet" href="/static/style.css">
+<script defer src="/static/demo.js"></script>
+<script defer src="/static/install.js"></script>
+</head>
+<body class="preview-body">
+<header class="preview-top">
+  <a href="/demo" class="brand preview-brand"><img src="/static/nexus-icon.svg" alt="" width="44" height="44"><span><strong>NEXUS</strong><small>AI INTELLIGENCE STUDIO</small></span></a>
+  <a href="/" class="btn secondary small">Owner sign-in →</a>
+</header>
+<main class="preview-main">
+  <section class="preview-hero">
+    <span class="preview-overline">PUBLIC · SAFE · INTERACTIVE</span>
+    <h1>Meet your AI team.<br><em>Explore smarter research.</em></h1>
+    <p>Nexus brings several AI perspectives together with official SEC, FDA and FRED research sources. Experience the workflow below in a free public demonstration.</p>
+    <div class="preview-pills"><span>✓ Multi-AI approach</span><span>✓ Official research sources</span><span>✓ No brokerage orders</span></div>
+    <div class="preview-cta">
+      <button id="install-nexus" class="btn primary" type="button">↓ Install Nexus on my phone</button>
+      <button id="share-nexus" class="btn secondary" type="button">↗ Share public preview</button>
+      <a class="btn secondary" href="/download">↓ Download source ZIP</a>
+    </div>
+    <p id="share-status" class="share-hint" role="status" aria-live="polite">Share this page without giving anyone your private access code.</p>
+  </section>
+  <section class="preview-featurebar" aria-label="Included features">
+    <div><span>05</span><strong>AI connection options</strong><small>Availability and quotas vary</small></div>
+    <div><span>03</span><strong>Government data sources</strong><small>SEC · FDA · FRED</small></div>
+    <div><span>00</span><strong>Brokerage orders</strong><small>Read-only by design</small></div>
+  </section>
+  <section class="preview-workspace" aria-labelledby="demo-title">
+    <div class="heading-row"><div><span class="eyebrow">PUBLIC PRACTICE ENVIRONMENT</span><h2 id="demo-title">See how the team collaborates</h2><p>Choose a sample project and walk through multiple independent viewpoints, a cross-review, and a final synthesis.</p></div><span class="status-pill safe">Offline-style simulation</span></div>
+    <div class="preview-scenarios" role="group" aria-label="Sample research scenario">
+      <button type="button" class="preview-scenario selected" data-demo="research" aria-pressed="true"><span>◎</span><strong>Research a technology</strong><small>Compare technical and market assumptions</small></button>
+      <button type="button" class="preview-scenario" data-demo="fda" aria-pressed="false"><span>▥</span><strong>Evaluate an FDA record</strong><small>Separate official data from speculation</small></button>
+      <button type="button" class="preview-scenario" data-demo="project" aria-pressed="false"><span>✦</span><strong>Plan a product</strong><small>Balance scope, risk and execution</small></button>
+    </div>
+    <div class="preview-mission"><div><small>EXAMPLE MISSION</small><p id="demo-topic">What should be verified before evaluating a new technology business?</p></div><button id="demo-run" type="button" class="btn primary">Run practice walkthrough →</button></div>
+    <div id="demo-results" class="preview-results" role="status" aria-live="polite"><p class="placeholder">Select a scenario and run the practice walkthrough to explore Nexus.</p></div>
+    <p class="preview-disclaimer">Everything shown in the practice walkthrough is prewritten sample content, not a live model response, investment recommendation, regulatory judgment, or current market finding. No API key, payment, or sign-in is used in this public preview.</p>
+  </section>
+  <section class="preview-protect card">
+    <div><span class="eyebrow">PRIVACY FIRST</span><h2>What stays private?</h2><p>The owner's API keys, access code, real mission history, brokerage connections, and environment settings are not available here. Sharing this public preview does not give someone access to the owner's workspace.</p></div>
+    <a href="/" class="btn secondary">Open private workspace →</a>
+  </section>
+  <footer class="footer">✦ NEXUS AI STUDIO <span>Public preview · Free sample only · No live AI calls · No orders</span></footer>
+</main>
+</body>
+</html>
