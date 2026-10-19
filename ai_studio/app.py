@@ -368,7 +368,8 @@ def create_job():
             return jsonify({"error": "Live AI calls are off. Try a FREE practice mission; no provider requests were sent."}), 403
     # Reserve the full worst-case number of provider requests before launch.
     # Reserve even failed calls; never retry a run automatically.
-    required = 0 if demo else (len(selected) * 2 + 1 if mode == "team" and len(selected) > 1 else len(selected))
+    required = 0 if demo else ((2 * len(selected) + 1 if len(selected) > 1 else 2)
+                               if mode == "team" else len(selected))
     day = datetime.now(timezone.utc).date().isoformat()
     with _LOCK, connection() as db:
         count = db.execute("SELECT count(*) FROM jobs WHERE status='running'").fetchone()[0]
