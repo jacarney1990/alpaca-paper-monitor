@@ -4,10 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b1324">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nexus AI">
+<link rel="icon" href="/static/nexus-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/nexus-icon.svg">
+<link rel="manifest" href="/static/manifest.webmanifest">
 <meta name="description" content="Your private AI workspace for research, project work and read-only investment intelligence.">
 <title>Nexus | Your AI workspace</title>
 <link rel="stylesheet" href="/static/style.css">
 <script defer src="/static/app.js"></script>
+<script defer src="/static/install.js"></script>
 </head>
 <body>
 <div class="layout">
@@ -42,6 +48,25 @@
         <div class="welcome-checks"><span>✓ Multiple AI perspectives</span><span>✓ Your investing platform</span><span>✓ Your control</span></div>
       </div>
       <div class="hero-orbit" aria-hidden="true"><div class="orbit o1"></div><div class="orbit o2"></div><div class="hero-core">✦</div><span class="orb a">G</span><span class="orb b">O</span><span class="orb c">◎</span></div>
+    </section>
+
+    <section id="share-panel" class="share-install card" aria-labelledby="share-title">
+      <div class="section-head">
+        <div><span class="eyebrow">SHARE &amp; TAKE NEXUS WITH YOU</span>
+          <h2 id="share-title">Your AI Studio, anywhere.</h2>
+          <p>Install Nexus on your Android home screen or send someone a safe, public preview. No private access codes or API keys are shared.</p>
+        </div>
+        <span class="status-pill safe">Public preview available</span>
+      </div>
+      <div class="share-actions">
+        <button id="install-nexus" type="button" class="btn primary">↓ Install Nexus on my phone</button>
+        <button id="share-nexus" type="button" class="btn secondary">↗ Share a public preview</button>
+        <a href="/demo" class="btn secondary">◈ Try public preview</a>
+        <a href="/download" class="btn secondary">↓ Download source ZIP</a>
+      </div>
+      <p id="share-status" class="share-hint" role="status" aria-live="polite">
+        Installation uses your browser's home-screen option. The ZIP includes app source code, not any account credentials or an Android APK.
+      </p>
     </section>
 
     <section id="settings" class="access card" aria-label="Workspace access">
