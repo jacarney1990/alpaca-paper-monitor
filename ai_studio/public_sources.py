@@ -5,8 +5,10 @@ has official provenance and is labeled as research context, not trading advice.
 """
 from __future__ import annotations
 
+import base64
 import csv
 import io
+import json
 import os
 import re
 import threading
@@ -122,6 +124,113 @@ def _short(value, length=220):
     return str(value).replace("\r", " ").replace("\n", " ").strip()[:length]
 
 
+
+SNAPSHOT_RAW = (
+    "https://raw.githubusercontent.com/jacarney1990/alpaca-paper-monitor/"
+    "main/data/official_sources_snapshot.json")
+SNAPSHOT_API = (
+    "https://api.github.com/repos/jacarney1990/alpaca-paper-monitor/"
+    "contents/data/official_sources_snapshot.json?ref=main")
+
+
+def _github_snapshot():
+    """Dated official data produced by an independent GitHub Actions SEC/FRED job."""
+    def fetch():
+        try:
+            obj = _get_json(SNAPSHOT_RAW)
+        except SourceError:
+            wrapper = _get_json(SNAPSHOT_API)
+            try:
+                obj = json.loads(base64.b64decode(
+                    wrapper["content"].replace("\n", ""), validate=True).decode("utf-8"))
+            except (KeyError, ValueError, TypeError, UnicodeError) as exc:
+                raise SourceError("invalid_snapshot_data") from exc
+        if (not isinstance(obj, dict) or obj.get("schema") != 1 or
+                not obj.get("read_only") or
+                not isinstance(obj.get("sec"), dict) or
+                not isinstance(obj.get("fred"), dict)):
+            raise SourceError("invalid_snapshot_data")
+        return {"status": "ok", "data": obj}
+    return _cache(("government_github_snapshot",), fetch)["data"]
+
+
+def _snapshot_age(snapshot):
+    try:
+        previous = datetime.fromisoformat(snapshot["updated_at"].replace("Z", "+00:00"))
+        if previous.tzinfo is None:
+            return True, "date unavailable"
+        age = (datetime.now(timezone.utc) -
+               previous.astimezone(timezone.utc)).total_seconds()
+        return age > 172800 or age < -3600, previous.isoformat(timespec="minutes")
+    except (KeyError, ValueError, TypeError, AttributeError):
+        return True, "date unavailable"
+
+
+def _sec_from_github(ticker):
+    snapshot = _github_snapshot()
+    source = snapshot["sec"]
+    filings = source.get("filings", {})
+    if not isinstance(filings, dict) or ticker not in filings:
+        raise SourceError("ticker_not_in_sec_snapshot")
+    stale_time, stamped = _snapshot_age(snapshot)
+    stale = stale_time or bool(source.get("stale"))
+    rows = filings.get(ticker) or []
+    items = []
+    for row in rows[:8]:
+        url = row.get("url", "")
+        if not url.startswith("https://www.sec.gov/Archives/edgar/data/"):
+            continue
+        items.append({
+            "id": "sec:" + str(row.get("accession", "")),
+            "title": _short(row.get("title"), 110),
+            "date": _short(row.get("date"), 16),
+            "summary": "Official SEC filing metadata, fetched by GitHub Actions",
+            "url": url, "authority": "SEC EDGAR via dated GitHub snapshot",
+        })
+    result = _result("SEC", "stale" if stale else "ok" if items else "no_results",
+                     items, reference="https://www.sec.gov/edgar/search/",
+                     note="SEC filing metadata collected by the existing GitHub runner (" +
+                          stamped + "). " +
+                          ("Older cached data; check original SEC links." if stale else
+                           "Official filing documents are linked."))
+    result["snapshot"] = True
+    result["stale"] = stale
+    return result
+
+
+def _fred_from_github(series):
+    snapshot = _github_snapshot()
+    source = snapshot["fred"]
+    found = source.get("series", {})
+    if not isinstance(found, dict) or series not in found:
+        raise SourceError("series_not_in_fred_snapshot")
+    stale_time, stamped = _snapshot_age(snapshot)
+    stale = stale_time or bool(source.get("stale"))
+    items = []
+    ref = "https://fred.stlouisfed.org/series/" + series
+    for row in found[series][-8:]:
+        value = row.get("value")
+        date = row.get("date")
+        if not isinstance(value, str) or not date or value in ("", "."):
+            continue
+        items.append({
+            "id": "fred:" + series + ":" + str(date),
+            "title": FRED_SERIES[series],
+            "date": _short(date, 16), "value": _short(value, 24),
+            "summary": series + " = " + _short(value, 24),
+            "url": ref, "authority": "FRED via dated GitHub snapshot",
+        })
+    result = _result("FRED", "stale" if stale else "ok" if items else "no_results",
+                     items, reference=ref,
+                     note="FRED observations collected by GitHub Actions (" +
+                          stamped + ") from " + source.get("method", "public FRED data") +
+                          ". Values may be revised." +
+                          (" This is older cached data." if stale else ""))
+    result["snapshot"] = True
+    result["stale"] = stale
+    return result
+
+
 def sec_filings(ticker):
     """List official EDGAR filings for a strictly validated ticker."""
     ticker = ticker.strip().upper()
@@ -168,7 +277,12 @@ def sec_filings(ticker):
         return _result("SEC", "ok" if entries else "no_results", entries,
                        note="Filing metadata only; open the original filing for details.",
                        reference="https://data.sec.gov/submissions/CIK" + cik + ".json")
-    return _cache(("sec", ticker), fetch)
+    try:
+        return _sec_from_github(ticker)
+    except SourceError:
+        # GitHub snapshot may not cover a newly entered ticker. SEC remains
+        # the authoritative live path when its data hosts are reachable.
+        return _cache(("sec", ticker), fetch)
 
 
 def _fda_phrase(value):
@@ -276,19 +390,29 @@ def fred_observations(series):
                        note=source_method +
                        ". Values can be revised and may be delayed; check units and release dates on FRED.",
                        reference=ref)
-    return _cache(("fred", series), fetch)
+    if not os.getenv("FRED_API_KEY", "").strip():
+        # Render can be blocked from FRED's graph CDN. Prefer the signed-in,
+        # independently timestamped public snapshot produced by GitHub.
+        try:
+            return _fred_from_github(series)
+        except SourceError:
+            pass
+    try:
+        return _cache(("fred", series), fetch)
+    except SourceError:
+        return _fred_from_github(series)
 
 
 def source_status():
     return {
         "SEC": {"ready": True, "requires_key": False,
-                "mode": "EDGAR public API, identified User-Agent"},
+                "mode": "EDGAR official filings via GitHub snapshot; live API when reachable"},
         "FDA": {"ready": True, "requires_key": False,
                 "mode": "openFDA public API" +
                         (" (optional key saved)" if os.getenv("OPENFDA_API_KEY") else "")},
         "FRED": {"ready": True, "requires_key": False,
-                 "mode": ("Official FRED API (key saved)" if os.getenv("FRED_API_KEY")
-                          else "Public FRED CSV; optional FRED_API_KEY for API access")},
+                 "mode": ("Official FRED API (key saved), dated snapshot fallback" if os.getenv("FRED_API_KEY")
+                          else "Dated public FRED snapshot; optional API key")},
     }
 
 
