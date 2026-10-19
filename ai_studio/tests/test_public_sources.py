@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import public_sources as ps
 
+ORIGINAL_GITHUB_SNAPSHOT = ps._github_snapshot
+
 
 class SourcesTest(unittest.TestCase):
     def setUp(self):
@@ -81,7 +83,7 @@ class SourcesTest(unittest.TestCase):
                  "sec": {"status": "ok", "filings": {}},
                  "fred": {"status": "ok", "series": {}}}
         with patch.object(ps, "_get_json", return_value=entry) as get:
-            with patch.object(ps, "_github_snapshot", wraps=ps._github_snapshot) as snapshot:
+            with patch.object(ps, "_github_snapshot", side_effect=ORIGINAL_GITHUB_SNAPSHOT) as snapshot:
                 item = snapshot()
         self.assertEqual(item["schema"], 1)
         self.assertEqual(get.call_count, 1)
