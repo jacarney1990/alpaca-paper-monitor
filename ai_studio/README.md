@@ -55,3 +55,27 @@ On Nexus, SEC lookup and FRED keyless observations FIRST use that dated snapshot
 
 Official GitHub Actions: https://github.com/jacarney1990/alpaca-paper-monitor/actions/workflows/official-data-refresh.yml
 Live public dataset: https://github.com/jacarney1990/alpaca-paper-monitor/blob/main/data/official_sources_snapshot.json
+
+## Shareable, installable, and downloadable Nexus
+
+The Nexus UI is a progressive web app (PWA) that can be installed on Android through Chrome without an APK or an app-store listing. The original owner-only workspace continues to require its private STUDIO_ACCESS_TOKEN, kept only in memory by the browser after sign-in.
+
+- Private workspace: https://multi-ai-intelligence-studio.onrender.com/
+- Shareable public preview: https://multi-ai-intelligence-studio.onrender.com/demo
+- Safe Studio-source ZIP: https://multi-ai-intelligence-studio.onrender.com/download
+
+The public preview uses *only client-side, prewritten practice examples* and does not access AI providers, user mission records, credentials, GitHub secrets, bank data or brokerages. Share the /demo link instead of a personal access code. The built-in Share action uses Android's native share sheet when available and otherwise copies the /demo URL.
+
+### Installing on a phone
+
+Open Nexus in Android Chrome (not an embedded webview), tap Install Nexus, and accept the install prompt if your browser offers it. Otherwise open the Chrome three-dot menu and choose Add to Home screen or Install app. It appears as Nexus AI on your home screen, with a standalone, full-screen-style window. On iPhone, open in Safari and use Share > Add to Home Screen. Installing does not bypass the workspace password, change AI billing limits, or enable brokerage trading.
+
+The PWA includes a web-app manifest, locally generated 192/512px PNG icons, an SVG icon, a root-scope service worker, and an offline message. The service worker caches only non-sensitive static assets needed for its offline message. It NEVER caches mission history, /api routes, authentication, response bodies, keys, or either dynamic workspace page. The app requires internet access for real use; installing it does not create an offline AI engine.
+
+### Downloadable source ZIP
+
+The GET /download endpoint creates Nexus-AI-Studio-Source.zip in memory from an explicit static allowlist. The ZIP contains the isolated Studio Flask app, templates, client assets, icons, public-source adapters, tests, requirements, a safe .env.example, and a README-START-HERE.md with local launch commands. It intentionally excludes Render environment values, real keys, mission databases, logs, hidden files, and all Alpaca broker-monitor code. It is a *source archive*, not an Android .apk file or an automatic executable installer. Someone running their own copy must set their own private access code and optional API credentials, and must keep paid AI calls disabled until authorized. The optional SEC/FRED GitHub snapshot fallback currently points at the original public repository's dated read-only data; a fork owner should supply their own source collection if they want independent updates.
+
+### Safety verification
+
+The CI suite verifies the public demo is accessible with no access code while all /api requests remain protected; checks the install manifest, service worker, PNG dimensions, and public URLs; and unzips the generated download to ensure no private environment values, SQLite data, brokerage code, or unrelated repository files can be included. All tests are offline and do not make paid AI requests or brokerage orders.
