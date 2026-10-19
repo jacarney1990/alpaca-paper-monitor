@@ -1,0 +1,1020 @@
+{
+  "schema": 1,
+  "updated_at": "2026-10-19T04:07:33.661147+00:00",
+  "sec": {
+    "status": "ok",
+    "filings": {
+      "NXE": [
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-08-28",
+          "accession": "0001062993-26-004684",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326004684/form6k.htm"
+        },
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-08-25",
+          "accession": "0001062993-26-004583",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326004583/form6k.htm"
+        },
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-08-05",
+          "accession": "0001062993-26-004014",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326004014/form6k.htm"
+        },
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-08-04",
+          "accession": "0001062993-26-003991",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326003991/form6k.htm"
+        },
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-07-01",
+          "accession": "0001062993-26-003443",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326003443/form6k.htm"
+        },
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-05-21",
+          "accession": "0001062993-26-002833",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326002833/form6k.htm"
+        },
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-05-21",
+          "accession": "0001062993-26-002831",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326002831/form6k.htm"
+        },
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-05-20",
+          "accession": "0001062993-26-002807",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326002807/form6k.htm"
+        }
+      ],
+      "IONQ": [
+        {
+          "symbol": "IONQ",
+          "form": "8-K",
+          "date": "2026-10-16",
+          "accession": "0001193125-26-424230",
+          "title": "IONQ • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526424230/ionq-20261014.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "424B5",
+          "date": "2026-10-14",
+          "accession": "0001193125-26-421074",
+          "title": "IONQ • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526421074/d165327d424b5.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "424B5",
+          "date": "2026-10-14",
+          "accession": "0001193125-26-421072",
+          "title": "IONQ • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526421072/d162787d424b5.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "8-K",
+          "date": "2026-10-13",
+          "accession": "0001193125-26-419609",
+          "title": "IONQ • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526419609/ionq-20261009.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "8-K",
+          "date": "2026-09-08",
+          "accession": "0001193125-26-384388",
+          "title": "IONQ • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526384388/ionq-20260908.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "8-K",
+          "date": "2026-08-28",
+          "accession": "0001193125-26-374694",
+          "title": "IONQ • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526374694/ionq-20260824.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "10-Q",
+          "date": "2026-08-10",
+          "accession": "0001193125-26-341001",
+          "title": "IONQ • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526341001/ionq-20260630.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "8-K",
+          "date": "2026-08-07",
+          "accession": "0001193125-26-338998",
+          "title": "IONQ • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526338998/ionq-20260807.htm"
+        }
+      ],
+      "OKLO": [
+        {
+          "symbol": "OKLO",
+          "form": "424B5",
+          "date": "2026-09-11",
+          "accession": "0001104659-26-106909",
+          "title": "OKLO • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000110465926106909/tm2625056-3_424b5.htm"
+        },
+        {
+          "symbol": "OKLO",
+          "form": "8-K",
+          "date": "2026-09-11",
+          "accession": "0001104659-26-106897",
+          "title": "OKLO • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000110465926106897/tm2625056d1_8k.htm"
+        },
+        {
+          "symbol": "OKLO",
+          "form": "10-Q",
+          "date": "2026-08-07",
+          "accession": "0001628280-26-054571",
+          "title": "OKLO • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000162828026054571/oklo-20260630.htm"
+        },
+        {
+          "symbol": "OKLO",
+          "form": "8-K",
+          "date": "2026-07-28",
+          "accession": "0001849056-26-000039",
+          "title": "OKLO • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000184905626000039/oklo-20260722.htm"
+        },
+        {
+          "symbol": "OKLO",
+          "form": "8-K",
+          "date": "2026-06-08",
+          "accession": "0001849056-26-000028",
+          "title": "OKLO • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000184905626000028/oklo-20260603.htm"
+        },
+        {
+          "symbol": "OKLO",
+          "form": "424B5",
+          "date": "2026-05-13",
+          "accession": "0001104659-26-060387",
+          "title": "OKLO • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000110465926060387/tm2614458-1_424b5.htm"
+        },
+        {
+          "symbol": "OKLO",
+          "form": "8-K",
+          "date": "2026-05-13",
+          "accession": "0001104659-26-060385",
+          "title": "OKLO • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000110465926060385/tm2614461d1_8k.htm"
+        },
+        {
+          "symbol": "OKLO",
+          "form": "10-Q",
+          "date": "2026-05-12",
+          "accession": "0001628280-26-034095",
+          "title": "OKLO • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000162828026034095/oklo-20260331.htm"
+        }
+      ],
+      "ASTS": [
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
+          "date": "2026-09-28",
+          "accession": "0001493152-26-044647",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226044647/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "10-Q",
+          "date": "2026-08-10",
+          "accession": "0001193125-26-342550",
+          "title": "ASTS • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526342550/asts-20260630.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
+          "date": "2026-08-10",
+          "accession": "0001193125-26-342540",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526342540/asts-20260810.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
+          "date": "2026-07-20",
+          "accession": "0001493152-26-033912",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226033912/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
+          "date": "2026-07-15",
+          "accession": "0001493152-26-033365",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226033365/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
+          "date": "2026-06-15",
+          "accession": "0001493152-26-028544",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226028544/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "10-Q",
+          "date": "2026-05-11",
+          "accession": "0001193125-26-216950",
+          "title": "ASTS • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526216950/asts-20260331.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
+          "date": "2026-05-11",
+          "accession": "0001193125-26-216946",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526216946/asts-20260511.htm"
+        }
+      ],
+      "VRT": [
+        {
+          "symbol": "VRT",
+          "form": "8-K",
+          "date": "2026-09-24",
+          "accession": "0001628280-26-063311",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026063311/vrt-20260924.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
+          "date": "2026-09-02",
+          "accession": "0001193125-26-379306",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000119312526379306/d472406d8k.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
+          "date": "2026-09-02",
+          "accession": "0001628280-26-059961",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026059961/vrt-20260902.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "10-Q",
+          "date": "2026-07-29",
+          "accession": "0001628280-26-050609",
+          "title": "VRT • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026050609/vrt-20260630.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
+          "date": "2026-07-29",
+          "accession": "0001628280-26-050323",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026050323/vrt-20260729.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
+          "date": "2026-06-18",
+          "accession": "0001628280-26-044317",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026044317/vrt-20260617.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
+          "date": "2026-06-12",
+          "accession": "0001628280-26-042641",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026042641/vrt-20260612.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
+          "date": "2026-06-03",
+          "accession": "0001628280-26-040031",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026040031/vrt-20260603.htm"
+        }
+      ],
+      "RKLB": [
+        {
+          "symbol": "RKLB",
+          "form": "8-K",
+          "date": "2026-10-14",
+          "accession": "0001819994-26-000067",
+          "title": "RKLB • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000181999426000067/rklb-20261014.htm"
+        },
+        {
+          "symbol": "RKLB",
+          "form": "8-K",
+          "date": "2026-09-15",
+          "accession": "0001753926-26-001769",
+          "title": "RKLB • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000175392626001769/g085951_8k.htm"
+        },
+        {
+          "symbol": "RKLB",
+          "form": "8-K",
+          "date": "2026-08-13",
+          "accession": "0001753926-26-001463",
+          "title": "RKLB • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000175392626001463/g085846_8k.htm"
+        },
+        {
+          "symbol": "RKLB",
+          "form": "424B5",
+          "date": "2026-08-13",
+          "accession": "0001753926-26-001459",
+          "title": "RKLB • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000175392626001459/g085845_424b5.htm"
+        },
+        {
+          "symbol": "RKLB",
+          "form": "8-K",
+          "date": "2026-08-13",
+          "accession": "0001753926-26-001454",
+          "title": "RKLB • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000175392626001454/g085841_8k.htm"
+        },
+        {
+          "symbol": "RKLB",
+          "form": "10-Q",
+          "date": "2026-08-10",
+          "accession": "0001819994-26-000062",
+          "title": "RKLB • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000181999426000062/rklb-20260630.htm"
+        },
+        {
+          "symbol": "RKLB",
+          "form": "8-K",
+          "date": "2026-08-10",
+          "accession": "0001819994-26-000061",
+          "title": "RKLB • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000181999426000061/rklb-20260810.htm"
+        },
+        {
+          "symbol": "RKLB",
+          "form": "8-K",
+          "date": "2026-06-29",
+          "accession": "0001753926-26-001085",
+          "title": "RKLB • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1819994/000175392626001085/g085783_8k.htm"
+        }
+      ],
+      "CRSP": [
+        {
+          "symbol": "CRSP",
+          "form": "10-Q",
+          "date": "2026-08-03",
+          "accession": "0001193125-26-330672",
+          "title": "CRSP • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526330672/crsp-20260630.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "8-K",
+          "date": "2026-08-03",
+          "accession": "0001193125-26-330644",
+          "title": "CRSP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526330644/crsp-20260803.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "8-K",
+          "date": "2026-06-04",
+          "accession": "0001193125-26-257593",
+          "title": "CRSP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526257593/crsp-20260604.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "10-Q",
+          "date": "2026-05-04",
+          "accession": "0001193125-26-204188",
+          "title": "CRSP • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526204188/crsp-20260331.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "8-K",
+          "date": "2026-05-04",
+          "accession": "0001193125-26-204147",
+          "title": "CRSP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526204147/crsp-20260504.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "8-K",
+          "date": "2026-03-16",
+          "accession": "0001193125-26-108333",
+          "title": "CRSP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526108333/crsp-20260316.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "8-K",
+          "date": "2026-03-11",
+          "accession": "0001193125-26-101073",
+          "title": "CRSP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526101073/crsp-20260310.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "10-K",
+          "date": "2026-02-12",
+          "accession": "0001193125-26-048957",
+          "title": "CRSP • Form 10-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526048957/crsp-20251231.htm"
+        }
+      ],
+      "POET": [
+        {
+          "symbol": "POET",
+          "form": "6-K",
+          "date": "2026-09-04",
+          "accession": "0001171843-26-005894",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000117184326005894/f6k_090426.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "6-K",
+          "date": "2026-08-13",
+          "accession": "0001493152-26-037615",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000149315226037615/form6-k.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "6-K",
+          "date": "2026-08-13",
+          "accession": "0001171843-26-005485",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000117184326005485/f6k_081326.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "6-K",
+          "date": "2026-08-03",
+          "accession": "0001171843-26-005153",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000117184326005153/f6k_080326.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "6-K",
+          "date": "2026-06-30",
+          "accession": "0001171843-26-004397",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000117184326004397/f6k_063026.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "6-K",
+          "date": "2026-05-18",
+          "accession": "0001171843-26-003507",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000117184326003507/f6k_051826.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "6-K",
+          "date": "2026-05-18",
+          "accession": "0001493152-26-024093",
+          "title": "POET • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000149315226024093/form6-k.htm"
+        },
+        {
+          "symbol": "POET",
+          "form": "424B5",
+          "date": "2026-05-18",
+          "accession": "0001493152-26-024090",
+          "title": "POET • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1437424/000149315226024090/form424b5.htm"
+        }
+      ],
+      "SLDP": [
+        {
+          "symbol": "SLDP",
+          "form": "8-K",
+          "date": "2026-09-14",
+          "accession": "0001104659-26-107256",
+          "title": "SLDP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926107256/tm2625328d1_8k.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "10-Q",
+          "date": "2026-08-05",
+          "accession": "0001104659-26-090634",
+          "title": "SLDP • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926090634/sldp-20260630x10q.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "8-K",
+          "date": "2026-08-04",
+          "accession": "0001104659-26-090369",
+          "title": "SLDP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926090369/tm2622211d1_8k.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "8-K",
+          "date": "2026-07-02",
+          "accession": "0001104659-26-079956",
+          "title": "SLDP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926079956/tm2619489d1_8k.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "8-K",
+          "date": "2026-06-12",
+          "accession": "0001104659-26-073457",
+          "title": "SLDP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926073457/tm2617566d1_8k.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "8-K",
+          "date": "2026-05-21",
+          "accession": "0001104659-26-065141",
+          "title": "SLDP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926065141/tm2615247d1_8k.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "8-K",
+          "date": "2026-05-07",
+          "accession": "0001104659-26-056584",
+          "title": "SLDP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926056584/tm2613507d2_8k.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "10-Q",
+          "date": "2026-05-06",
+          "accession": "0001104659-26-055840",
+          "title": "SLDP • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926055840/sldp-20260331x10q.htm"
+        }
+      ],
+      "TLRY": [
+        {
+          "symbol": "TLRY",
+          "form": "10-Q",
+          "date": "2026-10-08",
+          "accession": "0001437749-26-032382",
+          "title": "TLRY • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000143774926032382/tlry20260831_10q.htm"
+        },
+        {
+          "symbol": "TLRY",
+          "form": "8-K",
+          "date": "2026-10-08",
+          "accession": "0001171843-26-006527",
+          "title": "TLRY • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000117184326006527/f8k_100826.htm"
+        },
+        {
+          "symbol": "TLRY",
+          "form": "8-K",
+          "date": "2026-09-14",
+          "accession": "0001140361-26-036507",
+          "title": "TLRY • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000114036126036507/ef20081972_8k.htm"
+        },
+        {
+          "symbol": "TLRY",
+          "form": "8-K",
+          "date": "2026-08-10",
+          "accession": "0001140361-26-032052",
+          "title": "TLRY • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000114036126032052/ef20079834_8k.htm"
+        },
+        {
+          "symbol": "TLRY",
+          "form": "10-K",
+          "date": "2026-07-28",
+          "accession": "0001437749-26-024698",
+          "title": "TLRY • Form 10-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000143774926024698/tlry20260531_10k.htm"
+        },
+        {
+          "symbol": "TLRY",
+          "form": "8-K",
+          "date": "2026-07-28",
+          "accession": "0001171843-26-004944",
+          "title": "TLRY • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000117184326004944/f8k_072826.htm"
+        },
+        {
+          "symbol": "TLRY",
+          "form": "8-K",
+          "date": "2026-06-30",
+          "accession": "0001140361-26-026966",
+          "title": "TLRY • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000114036126026966/ef20077071_8k.htm"
+        },
+        {
+          "symbol": "TLRY",
+          "form": "8-K",
+          "date": "2026-06-09",
+          "accession": "0001140361-26-024650",
+          "title": "TLRY • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000114036126024650/ef20075844_form8k.htm"
+        }
+      ],
+      "IGC": [
+        {
+          "symbol": "IGC",
+          "form": "10-Q",
+          "date": "2026-08-14",
+          "accession": "0001185185-26-003544",
+          "title": "IGC • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526003544/igc10q063026.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "8-K",
+          "date": "2026-07-14",
+          "accession": "0001185185-26-002922",
+          "title": "IGC • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526002922/igc8k071326.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "8-K",
+          "date": "2026-07-06",
+          "accession": "0001185185-26-002808",
+          "title": "IGC • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526002808/igc8k070626.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "8-K",
+          "date": "2026-06-08",
+          "accession": "0001185185-26-002410",
+          "title": "IGC • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526002410/igc8k060826.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "10-Q",
+          "date": "2026-05-15",
+          "accession": "0001185185-26-001885",
+          "title": "IGC • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526001885/igc10q033126.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "8-K",
+          "date": "2026-04-20",
+          "accession": "0001185185-26-001437",
+          "title": "IGC • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526001437/igc8k200426.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "8-K",
+          "date": "2026-03-30",
+          "accession": "0001185185-26-001146",
+          "title": "IGC • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526001146/igc8k033026.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "8-K",
+          "date": "2026-03-12",
+          "accession": "0001185185-26-000846",
+          "title": "IGC • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526000846/igc8k031126.htm"
+        }
+      ],
+      "SERV": [
+        {
+          "symbol": "SERV",
+          "form": "8-K",
+          "date": "2026-10-05",
+          "accession": "0001832483-26-000040",
+          "title": "SERV • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000183248326000040/serv-20261005.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "8-K",
+          "date": "2026-08-17",
+          "accession": "0001213900-26-090504",
+          "title": "SERV • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000121390026090504/ea0302122-8k_serve.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "10-Q",
+          "date": "2026-08-06",
+          "accession": "0001832483-26-000035",
+          "title": "SERV • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000183248326000035/serv-20260630.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "8-K",
+          "date": "2026-08-06",
+          "accession": "0001832483-26-000034",
+          "title": "SERV • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000183248326000034/serv-20260806.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "8-K",
+          "date": "2026-06-24",
+          "accession": "0001213900-26-071318",
+          "title": "SERV • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000121390026071318/ea0295519-8k_serve.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "8-K",
+          "date": "2026-06-18",
+          "accession": "0001832483-26-000025",
+          "title": "SERV • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000183248326000025/serv-20260617.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "424B5",
+          "date": "2026-05-14",
+          "accession": "0001213900-26-056827",
+          "title": "SERV • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000121390026056827/ea0290442-424b5_serve.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "S-3",
+          "date": "2026-05-11",
+          "accession": "0001213900-26-054207",
+          "title": "SERV • Form S-3",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000121390026054207/ea0289807-s3_serve.htm"
+        }
+      ]
+    },
+    "covered": 12,
+    "failed": 0,
+    "stale": false
+  },
+  "fred": {
+    "status": "ok",
+    "series": {
+      "UNRATE": [
+        {
+          "date": "2026-02-01",
+          "value": "4.4"
+        },
+        {
+          "date": "2026-03-01",
+          "value": "4.3"
+        },
+        {
+          "date": "2026-04-01",
+          "value": "4.3"
+        },
+        {
+          "date": "2026-05-01",
+          "value": "4.3"
+        },
+        {
+          "date": "2026-06-01",
+          "value": "4.2"
+        },
+        {
+          "date": "2026-07-01",
+          "value": "4.1"
+        },
+        {
+          "date": "2026-08-01",
+          "value": "4.1"
+        },
+        {
+          "date": "2026-09-01",
+          "value": "4.2"
+        }
+      ],
+      "FEDFUNDS": [
+        {
+          "date": "2026-02-01",
+          "value": "3.64"
+        },
+        {
+          "date": "2026-03-01",
+          "value": "3.64"
+        },
+        {
+          "date": "2026-04-01",
+          "value": "3.64"
+        },
+        {
+          "date": "2026-05-01",
+          "value": "3.63"
+        },
+        {
+          "date": "2026-06-01",
+          "value": "3.63"
+        },
+        {
+          "date": "2026-07-01",
+          "value": "3.63"
+        },
+        {
+          "date": "2026-08-01",
+          "value": "3.63"
+        },
+        {
+          "date": "2026-09-01",
+          "value": "3.75"
+        }
+      ],
+      "CPIAUCSL": [
+        {
+          "date": "2026-02-01",
+          "value": "327.460"
+        },
+        {
+          "date": "2026-03-01",
+          "value": "330.293"
+        },
+        {
+          "date": "2026-04-01",
+          "value": "332.407"
+        },
+        {
+          "date": "2026-05-01",
+          "value": "333.979"
+        },
+        {
+          "date": "2026-06-01",
+          "value": "332.568"
+        },
+        {
+          "date": "2026-07-01",
+          "value": "332.813"
+        },
+        {
+          "date": "2026-08-01",
+          "value": "334.131"
+        },
+        {
+          "date": "2026-09-01",
+          "value": "336.298"
+        }
+      ],
+      "DGS10": [
+        {
+          "date": "2026-10-05",
+          "value": "5.31"
+        },
+        {
+          "date": "2026-10-06",
+          "value": "5.27"
+        },
+        {
+          "date": "2026-10-07",
+          "value": "5.28"
+        },
+        {
+          "date": "2026-10-08",
+          "value": "5.22"
+        },
+        {
+          "date": "2026-10-09",
+          "value": "5.24"
+        },
+        {
+          "date": "2026-10-13",
+          "value": "5.21"
+        },
+        {
+          "date": "2026-10-14",
+          "value": "5.19"
+        },
+        {
+          "date": "2026-10-15",
+          "value": "5.10"
+        }
+      ],
+      "GDP": [
+        {
+          "date": "2024-07-01",
+          "value": "29568.256"
+        },
+        {
+          "date": "2024-10-01",
+          "value": "29929.552"
+        },
+        {
+          "date": "2025-01-01",
+          "value": "30171.979"
+        },
+        {
+          "date": "2025-04-01",
+          "value": "30630.174"
+        },
+        {
+          "date": "2025-07-01",
+          "value": "31180.493"
+        },
+        {
+          "date": "2025-10-01",
+          "value": "31462.523"
+        },
+        {
+          "date": "2026-01-01",
+          "value": "31906.274"
+        },
+        {
+          "date": "2026-04-01",
+          "value": "32563.030"
+        }
+      ],
+      "PAYEMS": [
+        {
+          "date": "2026-02-01",
+          "value": "158436"
+        },
+        {
+          "date": "2026-03-01",
+          "value": "158650"
+        },
+        {
+          "date": "2026-04-01",
+          "value": "158798"
+        },
+        {
+          "date": "2026-05-01",
+          "value": "158861"
+        },
+        {
+          "date": "2026-06-01",
+          "value": "158892"
+        },
+        {
+          "date": "2026-07-01",
+          "value": "158882"
+        },
+        {
+          "date": "2026-08-01",
+          "value": "159015"
+        },
+        {
+          "date": "2026-09-01",
+          "value": "159044"
+        }
+      ]
+    },
+    "failed": [],
+    "method": "Public FRED graph CSV",
+    "stale": false
+  },
+  "read_only": true,
+  "model_inference_calls": 0,
+  "brokerage_orders": 0,
+  "note": "Official source metadata only; figures may be revised, delayed or incomplete."
+}
