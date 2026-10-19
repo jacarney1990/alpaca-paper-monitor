@@ -18,7 +18,7 @@ STATE_TITLE = 'AI Team State (automated, do not edit)'
 MODEL_CONFIG = {
     'OpenAI': ('OPENAI_API_KEY', 'OPENAI_MODEL', 'gpt-6-luna'),
     'Claude': ('ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL', 'claude-haiku-5-5'),
-    'Gemini': ('GEMINI_API_KEY', 'GEMINI_MODEL', 'gemini-3.5-flash'),
+    'Gemini': ('GEMINI_API_KEY', 'GEMINI_MODEL', 'gemini-3.5-flash-lite'),
     'Groq': ('GROQ_API_KEY', 'GROQ_MODEL', 'qwen/qwen3.8-27b'),
 }
 SCHEMA = {
@@ -414,6 +414,29 @@ def main():
         return
     budget = min(3, max(1, int(os.environ.get('MAX_AI_SYMBOLS_PER_RUN', '3'))))
     selected = fresh[:budget]
+    if 'Gemini' in models and os.environ.get('GEMINI_DAILY_REQUEST_CAP'):
+        import gemini_budget
+        # A full team review requires every configured model. If Gemini's
+        # shared research cap is spent, do not waste OpenAI/Groq requests.
+        # Other callers may independently consume provider quota after this
+        # read-only check; reserve() remains the final hard stop.
+        try:
+            capacity = gemini_budget.has_remaining_capacity()
+        except gemini_budget.GeminiBudgetError as exc:
+            raise RuntimeError('Gemini budget preflight unavailable; no model requests made') from exc
+        if not capacity:
+            audit = {
+                'as_of': now.isoformat(), 'source_health': health, 'reports': [],
+                'pending_symbols': [symbol for symbol, _, _ in selected],
+                'expected_models': models, 'research_status': 'DEFERRED_QUOTA',
+                'defer_reason': 'GEMINI_RESEARCH_DAILY_BUDGET_EXHAUSTED',
+                'execution': 'DISABLED', 'portfolio_connected': False
+            }
+            with open('ai-team-report.json', 'w', encoding='utf-8') as handle:
+                json.dump(audit, handle, indent=2)
+            print('::warning title=AI research deferred::Gemini local daily budget exhausted; '
+                  'no AI model requests, emails or brokerage orders; pending leads preserved.')
+            return
     reports = [agent_report(symbol, items, now) for symbol, items, _ in selected]
     # Emit machine-readable audit artifact. No secrets, no orders, no balances.
     with open('ai-team-report.json', 'w', encoding='utf-8') as handle:
