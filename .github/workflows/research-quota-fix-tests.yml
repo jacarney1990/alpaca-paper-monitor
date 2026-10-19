@@ -1,0 +1,31 @@
+name: Research quota-fix tests (offline only)
+on:
+  push:
+    branches:
+      - fix/research-quota-and-free-model
+    paths:
+      - 'ai_team.py'
+      - 'gemini_budget.py'
+      - 'tests/**'
+      - '.github/workflows/research-quota-fix-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile research source
+        run: python -m py_compile ai_team.py gemini_budget.py
+      - name: Run ALL offline repository safety tests
+        env:
+          GEMINI_API_KEY: ''
+          GROQ_API_KEY: ''
+          OPENAI_API_KEY: ''
+          ANTHROPIC_API_KEY: ''
+        run: python -m unittest discover -s tests -v
