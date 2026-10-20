@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-10-19T15:50:10.356888+00:00",
+  "updated_at": "2026-10-20T15:43:09.198400+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -403,6 +403,14 @@
       "CRSP": [
         {
           "symbol": "CRSP",
+          "form": "8-K",
+          "date": "2026-10-19",
+          "accession": "0001193125-26-425243",
+          "title": "CRSP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526425243/crsp-20261019.htm"
+        },
+        {
+          "symbol": "CRSP",
           "form": "10-Q",
           "date": "2026-08-03",
           "accession": "0001193125-26-330672",
@@ -456,14 +464,6 @@
           "accession": "0001193125-26-101073",
           "title": "CRSP • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526101073/crsp-20260310.htm"
-        },
-        {
-          "symbol": "CRSP",
-          "form": "10-K",
-          "date": "2026-02-12",
-          "accession": "0001193125-26-048957",
-          "title": "CRSP • Form 10-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526048957/crsp-20251231.htm"
         }
       ],
       "POET": [
@@ -908,10 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-10-05",
-          "value": "5.31"
-        },
-        {
           "date": "2026-10-06",
           "value": "5.27"
         },
@@ -938,6 +934,10 @@
         {
           "date": "2026-10-15",
           "value": "5.10"
+        },
+        {
+          "date": "2026-10-16",
+          "value": "5.09"
         }
       ],
       "GDP": [
