@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-10-20T15:43:09.198400+00:00",
+  "updated_at": "2026-10-21T15:45:48.946323+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -206,6 +206,14 @@
         {
           "symbol": "ASTS",
           "form": "8-K",
+          "date": "2026-10-20",
+          "accession": "0001493152-26-047766",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226047766/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
           "date": "2026-09-28",
           "accession": "0001493152-26-044647",
           "title": "ASTS • Form 8-K",
@@ -258,14 +266,6 @@
           "accession": "0001193125-26-216950",
           "title": "ASTS • Form 10-Q",
           "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526216950/asts-20260331.htm"
-        },
-        {
-          "symbol": "ASTS",
-          "form": "8-K",
-          "date": "2026-05-11",
-          "accession": "0001193125-26-216946",
-          "title": "ASTS • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526216946/asts-20260511.htm"
         }
       ],
       "VRT": [
@@ -1079,7 +1079,8 @@
     },
     "failed": [],
     "method": "Public FRED graph CSV",
-    "stale": false
+    "stale": true,
+    "latest_refresh_status": "source_unavailable"
   },
   "read_only": true,
   "model_inference_calls": 0,
