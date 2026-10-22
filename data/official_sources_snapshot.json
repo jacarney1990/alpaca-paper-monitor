@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-10-21T15:45:48.946323+00:00",
+  "updated_at": "2026-10-22T15:44:32.968751+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -908,14 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-10-06",
-          "value": "5.27"
-        },
-        {
-          "date": "2026-10-07",
-          "value": "5.28"
-        },
-        {
           "date": "2026-10-08",
           "value": "5.22"
         },
@@ -938,6 +930,14 @@
         {
           "date": "2026-10-16",
           "value": "5.09"
+        },
+        {
+          "date": "2026-10-19",
+          "value": "5.15"
+        },
+        {
+          "date": "2026-10-20",
+          "value": "5.12"
         }
       ],
       "GDP": [
@@ -1079,8 +1079,7 @@
     },
     "failed": [],
     "method": "Public FRED graph CSV",
-    "stale": true,
-    "latest_refresh_status": "source_unavailable"
+    "stale": false
   },
   "read_only": true,
   "model_inference_calls": 0,
