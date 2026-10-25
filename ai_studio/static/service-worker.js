@@ -3,7 +3,7 @@
 // Cache only public, non-user-specific display assets. Private missions,
 // model responses, credentials, /api routes, and the workspace page NEVER
 // enter the service worker cache.
-const CACHE = 'nexus-shell-v2';
+const CACHE = 'nexus-shell-v3';
 const PUBLIC_ASSETS = [
   '/static/nexus-icon.svg',
   '/static/nexus-icon-192.png',
