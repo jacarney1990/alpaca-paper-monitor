@@ -12,8 +12,10 @@
 <meta name="description" content="Your private AI workspace for research, project work and read-only investment intelligence.">
 <title>Nexus | Your AI workspace</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/chat-shell.css">
 <script defer src="/static/answer-renderer.js"></script>
 <script defer src="/static/app.js"></script>
+<script defer src="/static/chat-shell.js"></script>
 <script defer src="/static/install.js"></script>
 </head>
 <body>
@@ -97,6 +99,7 @@
       <div class="composer card">
         <div class="section-head"><div><div class="eyebrow">YOUR MISSION</div><h3>Tell your team what to do</h3></div><span id="workflow-tag" class="status-pill neutral">Research</span></div>
         <label class="field-label" for="topic">What would you like to explore?</label>
+        <div id="nexus-attached-preview" class="nexus-attached-preview"></div>
         <textarea id="topic" maxlength="5000" placeholder="For example: Compare three clean-energy technologies and explain the biggest risks and opportunities…" rows="4"></textarea>
         <div class="file-import">
           <label class="field-label" for="file-input">Import documents from your phone</label>
