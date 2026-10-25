@@ -77,39 +77,124 @@ async function loadHealth(){
   '. Practice exercises the job pipeline with clearly simulated content. History can be lost on free hosting.';
  return data;
 }
-function block(title,body){
- const el=document.createElement('div');el.className='block';
- const h=document.createElement('h3');h.textContent=title;
- const p=document.createElement('pre');p.textContent=String(body??'');
- el.append(h,p);$('output').appendChild(el);
+function chatMessage(parent,{role='assistant',name='Nexus',text='',subtitle='',status=''}) {
+ const turn=document.createElement('article');turn.className='chat-turn '+(role==='user'?'chat-user':'chat-assistant');
+ if(status)turn.classList.add('chat-'+status);
+ const avatar=document.createElement('span');avatar.className='chat-avatar';
+ avatar.setAttribute('aria-hidden','true');avatar.textContent=role==='user'?'Y':name==='Nexus'?'✦':name.slice(0,1).toUpperCase();
+ const content=document.createElement('div');content.className='chat-message';
+ const header=document.createElement('div');header.className='chat-message-head';
+ const who=document.createElement('strong');who.textContent=name;header.appendChild(who);
+ if(subtitle){const sub=document.createElement('span');sub.textContent=subtitle;header.appendChild(sub);}
+ content.appendChild(header);
+ const body=window.NexusMarkdown?window.NexusMarkdown.render(text):
+  document.createTextNode(String(text));
+ const bodyHolder=document.createElement('div');bodyHolder.className='chat-message-body';
+ bodyHolder.appendChild(body);content.appendChild(bodyHolder);
+ if(role!=='user'&&text){
+  const actions=document.createElement('div');actions.className='chat-message-actions';
+  const copy=document.createElement('button');copy.type='button';copy.className='answer-copy';
+  copy.textContent='Copy answer';copy.setAttribute('aria-label','Copy '+name+' answer');
+  copy.addEventListener('click',()=>window.NexusMarkdown?.copyText(text,copy));
+  actions.appendChild(copy);content.appendChild(actions);
+ }
+ turn.append(avatar,content);parent.appendChild(turn);
+ return turn;
+}
+function chatNotice(parent,message,warning=false){
+ const note=document.createElement('div');note.className='chat-notice'+(warning?' warning':'');
+ note.textContent=message;parent.appendChild(note);
+}
+function chatTeamDetails(parent,output) {
+ const first=output.initial||[],reviews=output.cross_review||[];
+ if(!first.length&&!reviews.length)return;
+ const details=document.createElement('details');details.className='chat-team-details';
+ const summary=document.createElement('summary');
+ summary.textContent='View AI team analysis · '+first.length+' initial response(s) · '+reviews.length+' peer review(s)';
+ details.appendChild(summary);
+ const inner=document.createElement('div');inner.className='chat-team-content';
+ for(const entry of first){
+  chatMessage(inner,{name:entry.provider||'Agent',text:entry.answer||entry.error||'No response',
+   subtitle:'Independent finding',status:entry.status==='failed'?'failed':''});
+ }
+ for(const entry of reviews){
+  chatMessage(inner,{name:entry.provider||'Agent',text:entry.answer||entry.error||'No response',
+   subtitle:'Cross-review',status:entry.status==='failed'?'failed':''});
+ }
+ details.appendChild(inner);parent.appendChild(details);
 }
 async function history(){
  const data=await api('/api/jobs');$('history').replaceChildren();
- if(!data.length){const empty=document.createElement('p');empty.className='placeholder';empty.textContent='No missions yet. Start with a free practice run above.';$('history').appendChild(empty);}
+ if(!data.length){
+  const empty=document.createElement('p');empty.className='placeholder';
+  empty.textContent='No conversations yet. Launch a research mission above.';
+  $('history').appendChild(empty);
+ }
  for(const job of data){
   const button=document.createElement('button');button.type='button';button.className='job';
+  button.setAttribute('aria-pressed',String(job.id===activeId));
   const meta=document.createElement('small');meta.textContent=job.workflow+' · '+job.status+' · '+job.created.slice(0,16).replace('T',' ');
   button.append(document.createTextNode(job.topic.slice(0,135)),meta);
   button.onclick=()=>showJob(job.id).catch(e=>tell(e.message,true));$('history').appendChild(button);
  }
 }
-async function showJob(id){
+async function showJob(id,{focus=true}={}){
  activeId=id;clearTimeout(timer);
- const result=await api('/api/jobs/'+id);$('output').replaceChildren();
- const demo=Boolean(result.output?.simulation);
- block((demo?'FREE PRACTICE':'MISSION')+' · '+result.status.toUpperCase(),result.topic);
- if(result.output){
-  if(result.output.notice)block('What this means',result.output.notice);
-  if(result.output.error)block('Issue',result.output.error);
-  for(const entry of result.output.initial||[])block('Perspective · '+entry.provider,entry.answer||entry.error||'No response');
-  for(const entry of result.output.cross_review||[])block('Peer feedback · '+entry.provider,entry.answer||entry.error||'No response');
-  if(result.output.synthesis)block('Combined answer',result.output.synthesis);
-  if(result.output.completed!==undefined)block('Mission summary',
-   result.output.completed+'/'+result.output.requested+' first-round participants. Team completion: '+(result.output.team_status||'practice')+'. Brokerage orders: disabled.'+
-   (demo?' All answers above are simulations, not genuine AI output.':''));
+ const result=await api('/api/jobs/'+id);
+ if(activeId!==id)return;
+ const display=$('output');display.replaceChildren();
+ const out=result.output||{},demo=Boolean(out.simulation),status=result.status;
+ const thread=document.createElement('div');thread.className='chat-thread';
+ const heading=document.createElement('div');heading.className='chat-thread-head';
+ const title=document.createElement('strong');title.textContent='Conversation';
+ const meta=document.createElement('span');meta.textContent=(result.workflow||'research')+' · '+
+  (demo?'Practice simulation':status==='running'?'Working':status==='complete'?'Complete':status);
+ heading.append(title,meta);thread.appendChild(heading);
+ chatMessage(thread,{role:'user',name:'You',text:result.topic});
+ if(status==='running'){
+  const typing=document.createElement('div');typing.className='chat-thinking';
+  const dot=document.createElement('span');dot.className='chat-thinking-icon';dot.textContent='✦';
+  const copy=document.createElement('div');
+  const label=document.createElement('strong');label.textContent='Nexus is working on your answer';
+  const explanation=document.createElement('p');
+  explanation.textContent='Your agents may be comparing findings. The completed response will appear here.';
+  const pulse=document.createElement('span');pulse.className='chat-thinking-dots';
+  pulse.textContent='● ● ●';pulse.setAttribute('aria-hidden','true');
+  copy.append(label,explanation,pulse);typing.append(dot,copy);thread.appendChild(typing);
+ }else {
+  if(demo)chatNotice(thread,'PRACTICE ONLY — these are scripted examples, not real AI research.',true);
+  if(out.notice)chatNotice(thread,out.notice,demo);
+  if(out.error)chatNotice(thread,'Mission error: '+out.error,true);
+  if(out.mode==='team'){
+   if(out.synthesis){
+    chatMessage(thread,{name:'Nexus',subtitle:'Combined team answer',
+     text:out.synthesis,status:status==='failed'?'failed':''});
+   }else if((out.initial||[]).length){
+    chatNotice(thread,'A combined answer was not produced. Review the individual agent findings below.',true);
+   }
+   chatTeamDetails(thread,out);
+  }else{
+   for(const entry of out.initial||[]){
+    chatMessage(thread,{name:entry.provider||'AI Agent',subtitle:'Independent answer',
+     text:entry.answer||entry.error||'No response',status:entry.status==='failed'?'failed':''});
+   }
+   if((out.cross_review||[]).length)chatTeamDetails(thread,{cross_review:out.cross_review});
+  }
+  if(out.completed!==undefined){
+   const foot=document.createElement('div');foot.className='chat-run-summary';
+   foot.textContent=out.completed+' of '+out.requested+' agents responded · Team: '+
+    (out.team_status||'practice')+' · Brokerage orders: disabled';
+   thread.appendChild(foot);
+  }else if(status==='interrupted'||status==='failed'){
+   chatNotice(thread,'This mission did not complete. Review the error above or start another mission.',true);
+  }
  }
- jump('history-panel');
- if(result.status==='running')timer=setTimeout(()=>showJob(id).catch(e=>tell(e.message,true)),3500);
+ display.appendChild(thread);
+ for(const button of $('history').querySelectorAll('button.job')){
+  button.setAttribute('aria-pressed',String(button.textContent===result.topic));
+ }
+ if(focus)jump('history-panel');
+ if(status==='running')timer=setTimeout(()=>showJob(id,{focus:false}).catch(e=>tell(e.message,true)),3500);
 }
 function drawImportedFiles(){
  const list=$('file-list');list.replaceChildren();
