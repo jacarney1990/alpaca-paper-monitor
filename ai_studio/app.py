@@ -338,10 +338,10 @@ def generate_image():
         return jsonify({"error": "Live AI usage is disabled in Studio settings."}), 403
     body = request.get_json(silent=True) or {}
     provider = body.get("provider", "Pollinations")
-    if provider not in ("Pollinations", "OpenAI"):
+    if provider not in ("AI Horde", "Pollinations", "OpenAI"):
         return jsonify({"error": "Choose a supported image provider."}), 400
     env_name = "POLLINATIONS_API_KEY" if provider == "Pollinations" else "OPENAI_API_KEY"
-    key = os.getenv(env_name, "").strip()
+    key = os.getenv("AI_HORDE_API_KEY", "0000000000").strip() if provider == "AI Horde" else os.getenv(env_name, "").strip()
     if not key:
         return jsonify({"error": provider + " is not connected. Configure " + env_name + " securely in Render."}), 422
     prompt = body.get("prompt")
@@ -362,6 +362,18 @@ def generate_image():
         db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,1) "
                    "ON CONFLICT(day) DO UPDATE SET reserved=reserved+1", (day,))
     try:
+        if provider == "AI Horde":
+            response = requests.post("https://aihorde.net/api/v2/generate/async",
+                headers={"apikey": key, "Client-Agent": "NexusIntelligenceStudio:1.0:github.com/jacarney1990/alpaca-paper-monitor"},
+                json={"prompt": styles[style] + prompt.strip(),
+                      "params": {"width": 512, "height": 512, "steps": 20, "n": 1},
+                      "nsfw": False, "censor_nsfw": True, "r2": True}, timeout=25)
+            if not response.ok:
+                return jsonify({"error": "Community generator rejected request (HTTP " + str(response.status_code) + ")."}), 502
+            job_id = response.json().get("id")
+            if not job_id:
+                return jsonify({"error": "Community generator returned no job ID."}), 502
+            return jsonify({"job_id": job_id, "provider": "AI Horde", "pending": True})
         if provider == "Pollinations":
             image_model = os.getenv("POLLINATIONS_IMAGE_MODEL", "flux").strip() or "flux"
             if image_model not in ("flux", "zimage", "klein"):
@@ -397,6 +409,37 @@ def generate_image():
         return jsonify({"image_base64": encoded, "mime": "image/png", "model": "gpt-image-1-mini"})
     except (requests.RequestException, ValueError, TypeError, KeyError):
         return jsonify({"error": "Image generation failed or timed out."}), 502
+
+
+@app.get("/api/images/horde-status/<job_id>")
+def horde_image_status(job_id):
+    reject = secured()
+    if reject is not None:
+        return reject
+    try:
+        uuid.UUID(job_id)
+    except (ValueError, AttributeError):
+        return jsonify({"error": "Invalid image job ID."}), 400
+    try:
+        response = requests.get("https://aihorde.net/api/v2/generate/check/" + job_id, timeout=12)
+        response.raise_for_status()
+        check = response.json()
+        if check.get("faulted"):
+            return jsonify({"error": "Community image generation failed."}), 502
+        if not check.get("done"):
+            return jsonify({"pending": True, "queue_position": check.get("queue_position"),
+                            "wait_time": check.get("wait_time")})
+        response = requests.get("https://aihorde.net/api/v2/generate/status/" + job_id, timeout=15)
+        response.raise_for_status()
+        generations = response.json().get("generations", [])
+        if not generations:
+            return jsonify({"error": "No generated image was returned."}), 502
+        image_url = generations[0].get("img", "")
+        if not image_url.startswith("https://"):
+            return jsonify({"error": "The community provider returned an invalid image URL."}), 502
+        return jsonify({"pending": False, "image_url": image_url, "provider": "AI Horde"})
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        return jsonify({"error": "Could not check the community image job."}), 502
 
 
 @app.post("/api/images/analyze")
