@@ -561,6 +561,33 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
                   else run_task(topic, mode, role, selected, workflow))
         if workflow in ("research", "investment") and not demo:
             from datetime import datetime, timezone
+            if "FRED: UNRATE" in topic.upper():
+                try:
+                    series = lookup_public_source("FRED", {"series": "UNRATE"})
+                    points = []
+                    for entry in series.get("items", []):
+                        try:
+                            points.append((str(entry["date"]), float(entry["value"])))
+                        except (KeyError, ValueError, TypeError):
+                            continue
+                    if len(points) >= 2:
+                        points.sort()
+                        first_date, first_value = points[0]
+                        last_date, last_value = points[-1]
+                        result["numeric_checks"] = {
+                            "method": "deterministic arithmetic on retrieved FRED values",
+                            "source_status": series.get("status"),
+                            "first_date": first_date,
+                            "last_date": last_date,
+                            "first_value": first_value,
+                            "last_value": last_value,
+                            "change_percentage_points": round(last_value - first_value, 3),
+                            "minimum_value": min(v for _, v in points),
+                            "maximum_value": max(v for _, v in points),
+                            "note": "Computed reference values only; generated prose has not been automatically checked against them.",
+                        }
+                except SourceError:
+                    pass
             result["verification"] = {
                 "report_generated_at_utc": datetime.now(timezone.utc).isoformat(),
                 "independent_numeric_validation": "not_performed",
