@@ -7,3 +7,5 @@
 #history-search{font-size:13px;padding:10px}#history button[hidden]{display:none}.response-actions{display:flex;gap:8px;margin-top:16px;border-top:1px solid #30415b;padding-top:12px}.response-actions button{font-size:12px;padding:7px 11px;background:#1b3049}#diagnostics{margin-top:12px;padding:10px;border-radius:10px;background:#111d30;overflow-wrap:anywhere}#diagnostics:empty{display:none}#diagnostics p{margin:6px 0}
 
 .provider-warning{font-size:13px;color:#ffd5a3;background:#372a20;border:1px solid #775237;border-radius:9px;padding:10px 12px;margin:12px 0}.bubble .answer-markdown a{color:#9bc9ff;overflow-wrap:anywhere}
+
+#export-chat{font-size:13px;text-align:left;background:transparent;border-color:#31435b}#export-chat:hover{background:#20334c}#availability{font-variant-numeric:tabular-nums}
