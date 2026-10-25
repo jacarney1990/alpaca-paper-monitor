@@ -79,3 +79,35 @@ The GET /download endpoint creates Nexus-AI-Studio-Source.zip in memory from an 
 ### Safety verification
 
 The CI suite verifies the public demo is accessible with no access code while all /api requests remain protected; checks the install manifest, service worker, PNG dimensions, and public URLs; and unzips the generated download to ensure no private environment values, SQLite data, brokerage code, or unrelated repository files can be included. All tests are offline and do not make paid AI requests or brokerage orders.
+
+
+## Import documents from Android / iPhone (October 2026)
+
+The private **Create mission** page now includes **Import documents from your phone**.
+After connecting with your Studio access code, select files from the Android
+file picker (or iOS Files app), choose your AI providers, give the mission a
+question, and tap **Run with real AI**. You can remove any imported document
+before launching.
+
+- Supported: TXT, MD, CSV, JSON, text-based PDF, DOCX, XLSX, PPTX.
+- Maximum three files, each 5 MB; extracted text is capped at 9,000
+  characters per file and 18,000 across all files. Large and rich documents
+  will be shortened. This is not a complete-document or image analysis tool.
+- No permanent original-file storage is implemented. The multipart request
+  may be spooled temporarily by the web server during processing, and
+  extracted text is kept temporarily in browser memory. Nexus saves only the
+  mission question to its job database, not raw extracted text. Generated
+  model answers *can* contain quoted file content and are saved in ephemeral
+  mission history until restart.
+- Text is sent to each selected external AI provider only when a live mission
+  is explicitly launched. Practice missions are simulated and do not analyze
+  the imported contents or contact models.
+- Photos, scanned/image-only PDFs, encrypted documents, older .doc/.xls
+  formats, and cloud-drive sync are not supported. Export these as text-based
+  PDFs or modern Office files first.
+- File extraction is authenticated, extension-allowlisted, size bounded,
+  and reads Office ZIP expansion metadata before parsing. Document text is
+  marked untrusted in the research prompt; it cannot authorize trades or
+  modify settings. Brokerage execution remains disabled.
+- Required Python packages are in the repository root requirements.txt.
+
