@@ -220,6 +220,8 @@ def check_provider_key(name):
     """
     if name not in PROVIDERS:
         raise ProviderError("Unknown provider")
+    if name == "Ollama Local":
+        return {"status": "local" if os.getenv("OLLAMA_ENABLED", "false").lower() == "true" else "disabled", "detail": "Requires a local Ollama server on the same host; no API key"}
     key_env, _, _ = PROVIDERS[name]
     key = os.getenv(key_env, "").strip()
     if not key:
