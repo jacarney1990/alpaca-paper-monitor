@@ -142,6 +142,7 @@
  const missionHeading=mission.querySelector('.heading-row');
  if(missionHeading)missionHeading.remove();
  const workflowTiles=mission.querySelector('.workflow-tiles');
+ if(workflowTiles)workflowTiles.remove();
  const composer=mission.querySelector('.composer');
  composer.classList.add('nexus-composer');
  const composerHeader=composer.querySelector(':scope > .section-head');
@@ -165,7 +166,7 @@
  const help=mk('div','nexus-composer-caption','AI research may incur provider charges · No brokerage orders');
  const options=mk('div','nexus-advanced');options.id='nexus-advanced';options.hidden=true;
  const optionsTitle=mk('div','nexus-option-title','Customize your AI team');
- options.append(optionsTitle,workflowTiles);
+ options.append(optionsTitle);
  const fileImport=composer.querySelector('.file-import');
  fileImport.classList.add('nexus-file-import');
  const mode=composer.querySelector('.form-pair');
@@ -199,7 +200,7 @@
  function show(view){
   const name=viewNames[view] ? view:'chat';
   currentView=name;
-  if(name==='settings')authBack.appendChild($('settings'));
+  if(name==='settings')authBack.prepend($('settings'));
   else if($('settings').parentElement===authBack)login.appendChild($('settings'));
   chatPane.hidden=name!=='chat';
   toolsPane.hidden=name==='chat';
@@ -232,11 +233,12 @@
  function sync(){
   const connected=Boolean(token);
   document.body.classList.toggle('nexus-connected',connected);
-  state.textContent=connected?'● Workspace connected':'● Sign in required';
+  state.textContent=connected?'● Connected':'Connect';
+  state.style.cursor='pointer';
   send.disabled=!connected||$('launch').disabled;
   send.title=connected? 'Send to your AI team':'Connect your workspace first';
   login.hidden=connected||currentView!=='chat';
-  models.textContent=($('workflow-tag')?.textContent||'Research')+' · '+($('mode').value==='team'?'AI team':'Independent');
+  models.textContent=$('mode').value==='team'?'AI team · Automatic routing':'Independent AI';
  }
  function present(tool){
   show(tool);
@@ -246,6 +248,7 @@
  newBtn.onclick=clearChat;
  menu.onclick=()=>document.body.classList.toggle('nexus-sidebar-open');
  settingsBtn.onclick=()=>present('settings');
+ state.onclick=()=>{present('settings');$('token')?.focus();};
  $('nav-command').onclick=()=>show('chat');
  $('nav-research').onclick=()=>{show('chat');chooseWorkflow('research');};
  $('nav-investment').onclick=()=>present('investing');
@@ -267,14 +270,10 @@
  });
  $('mode').addEventListener('change',sync);
  document.querySelectorAll('.tile').forEach(tile=>tile.addEventListener('click',sync));
- const originalConnect=$('connect').onclick;
- $('connect').onclick=async()=>{await originalConnect();sync();};
- const originalLaunch=$('launch').onclick;
- $('launch').onclick=async()=>{await originalLaunch();sync();};
- const originalPractice=$('practice').onclick;
- $('practice').onclick=async()=>{await originalPractice();sync();};
- const originalReload=$('reload').onclick;
- $('reload').onclick=async()=>{await originalReload();sync();};
+ $('connect').addEventListener('click',()=>setTimeout(sync,250));
+ $('launch').addEventListener('click',()=>setTimeout(sync,250));
+ $('practice').addEventListener('click',()=>setTimeout(sync,250));
+ $('reload').addEventListener('click',()=>setTimeout(sync,250));
  const sheet=mk('div','nexus-drawer-backdrop');sheet.id='nexus-drawer-backdrop';document.body.appendChild(sheet);
  sheet.onclick=()=>document.body.classList.remove('nexus-sidebar-open');
  const bottom=mk('nav','nexus-mobile-tabs');bottom.setAttribute('aria-label','Nexus mobile navigation');
