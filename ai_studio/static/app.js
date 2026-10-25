@@ -231,6 +231,17 @@ function drawImportedFiles(){
   importedFiles.length+' file(s) ready for your next mission ('+
   importedFiles.reduce((n,f)=>n+f.text.length,0).toLocaleString()+' characters extracted).':
   'No documents imported.';
+ const preview=$('nexus-attached-preview');
+ if(preview){
+  preview.replaceChildren();
+  for(const file of importedFiles){
+   const b=document.createElement('button');b.type='button';b.className='nexus-file-chip';
+   b.textContent='📎 '+file.name+' ×';b.title='Remove '+file.name;
+   b.onclick=()=>{const index=importedFiles.indexOf(file);
+    if(index>=0)importedFiles.splice(index,1);drawImportedFiles();};
+   preview.appendChild(b);
+  }
+ }
 }
 async function importPhoneFiles(){
  const input=$('file-input'),selected=[...input.files];
@@ -275,11 +286,20 @@ async function launch(demo=false){
   if(topic.length<3)throw Error('Tell your team what you would like to explore.');
   if(!providers.length)throw Error('Select at least one AI teammate.');
   const request={topic,workflow:currentWorkflow,mode:$('mode').value,role:$('role').value,providers,demo,
-   attachments:importedFiles.map(({name,text})=>({name,text}))};
+   reply_to:activeId||null,attachments:importedFiles.map(({name,text})=>({name,text}))};
   const job=await api('/api/jobs',{method:'POST',body:JSON.stringify(request)});
   tell(demo?'Practice mission started. Documents were imported, but practice answers are simulated and do not analyze their contents.':'Live AI mission started with '+importedFiles.length+' imported file(s). Check progress below.');
+  $('topic').value='';importedFiles.splice(0);drawImportedFiles();
   await history();await showJob(job.id);
- }catch(e){tell(e.message,true);}finally{button.disabled=false;}
+  await loadProviders();
+ }catch(e){tell(e.message,true);}finally{
+  if(demo)button.disabled=false;
+  else if(statusCache){
+   const quota=statusCache.usage||{};
+   button.disabled=!(quota.api_usage_enabled&&quota.remaining>0);
+  }
+  window.NexusShell?.sync();
+ }
 }
 async function loadFinance(){
  const target=$('finance-status');target.textContent='Checking existing GitHub workflows…';
@@ -401,6 +421,7 @@ async function searchOfficialSource(source,payload,button){
       'unverified conclusions, and research gaps. Do not recommend trades.\n'+
       passages.join('\n')+'\nOriginal source: '+(data.reference||'');
     $('topic').value=topicText.slice(0,5000);
+    window.NexusShell?.show('chat');
     chooseWorkflow('research');
     tell('Public findings copied into your mission. Free practice is simulated; real AI requests still require authorization.');
    };
