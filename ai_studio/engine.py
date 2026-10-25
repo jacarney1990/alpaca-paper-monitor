@@ -5,6 +5,7 @@ import os
 import requests
 
 PROVIDERS = {
+    "Ollama Local": ("", "OLLAMA_MODEL", "llama3.2"),
     "OpenAI": ("OPENAI_API_KEY", "OPENAI_MODEL", "gpt-4.1-mini"),
     "Claude": ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "claude-haiku-4-5"),
     "Gemini": ("GEMINI_API_KEY", "GEMINI_MODEL", "gemini-3.5-flash-lite"),
@@ -24,7 +25,7 @@ class ProviderError(Exception):
     pass
 
 def status():
-    return {name: {"configured": bool(os.getenv(key, "").strip()), "model": os.getenv(model_key, default)}
+    return {name: {"configured": (os.getenv("OLLAMA_ENABLED", "false").lower() == "true" if name == "Ollama Local" else bool(os.getenv(key, "").strip())), "model": os.getenv(model_key, default)}
             for name, (key, model_key, default) in PROVIDERS.items()}
 
 def _text_openai(body):
@@ -48,11 +49,16 @@ def invoke(name, system, prompt):
         raise ProviderError("Unknown provider")
     key_env, model_env, default_model = PROVIDERS[name]
     key = os.getenv(key_env, "").strip()
-    if not key:
+    if not key and name != "Ollama Local":
         raise ProviderError("API key not configured")
     model = os.getenv(model_env, default_model).strip() or default_model
     try:
-        if name == "OpenAI":
+        if name == "Ollama Local":
+            if os.getenv("OLLAMA_ENABLED", "false").lower() != "true":
+                raise ProviderError("Local Ollama is not enabled")
+            r = requests.post("http://127.0.0.1:11434/api/chat", timeout=120,
+                json={"model": model, "stream": False, "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}], "options": {"num_predict": output_token_limit()}})
+        elif name == "OpenAI":
             r = requests.post("https://api.openai.com/v1/responses", timeout=55,
                 headers={"Authorization": "Bearer " + key},
                 json={"model": model, "instructions": system, "input": prompt, "max_output_tokens": output_token_limit()})
