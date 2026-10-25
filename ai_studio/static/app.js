@@ -191,7 +191,7 @@ async function showJob(id,{focus=true}={}){
  }
  display.appendChild(thread);
  for(const button of $('history').querySelectorAll('button.job')){
-  button.setAttribute('aria-pressed',String(button.textContent===result.topic));
+  button.setAttribute('aria-pressed',String(button.dataset.jobId===id));
  }
  if(focus)jump('history-panel');
  if(status==='running')timer=setTimeout(()=>showJob(id,{focus:false}).catch(e=>tell(e.message,true)),3500);
