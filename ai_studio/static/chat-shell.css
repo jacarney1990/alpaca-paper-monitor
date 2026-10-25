@@ -1,0 +1,181 @@
+/* Nexus Conversation First — visual overrides on established components. */
+html{scroll-behavior:smooth}
+body.nexus-chat-app{background:#090d16;color:#f2f5fc}
+body.nexus-chat-app .layout{grid-template-columns:270px minmax(0,1fr)}
+body.nexus-chat-app .sidebar{background:#111827;border-right:1px solid #273145;padding:22px 13px;height:100dvh;z-index:30}
+body.nexus-chat-app .brand{padding:8px 12px 18px;margin:0 0 4px}
+body.nexus-chat-app .brand strong{letter-spacing:.06em;font-size:16px}
+body.nexus-chat-app .brand small{font-size:10px;letter-spacing:.02em;text-transform:none;color:#91a5c4}
+body.nexus-chat-app .nav-label{display:none}
+body.nexus-chat-app .main-nav{gap:4px}
+body.nexus-chat-app .nav{border-radius:11px;padding:11px 12px;font-size:13px;font-weight:570;min-height:43px}
+body.nexus-chat-app .nav.active{background:#263950;border:1px solid #304d6c;color:#eef7ff}
+body.nexus-chat-app .nav-symbol{font-size:18px;color:#abc8ec}
+body.nexus-chat-app .sidebar-bottom{border-top:1px solid #2b364d;margin-top:auto;padding-top:12px}
+body.nexus-chat-app .safety-note{background:transparent;border:0;padding:12px 7px}
+body.nexus-chat-app .side-settings{display:none}
+.nexus-new-chat{margin:0 4px 20px;padding:13px 15px;background:#eff5ff;color:#11233d;
+ font-weight:750;font-size:13px;border:0;border-radius:12px;text-align:left;min-height:47px}
+.nexus-new-chat:hover{background:#d7e9ff}
+.nexus-sidebar-history{margin-top:22px;min-height:90px;overflow:auto;flex:1}
+.nexus-side-caption{font-size:11px;font-weight:650;color:#90a7c8;padding:4px 12px 10px}
+.nexus-sidebar-history .history-list{grid-template-columns:1fr;display:grid;gap:4px;margin:0}
+.nexus-sidebar-history .history-list .job{background:transparent;border:0;box-shadow:none;border-radius:10px;
+ padding:10px 12px;min-height:0;gap:5px;color:#bfcee5;text-align:left}
+.nexus-sidebar-history .history-list .job strong{font-size:12px;font-weight:620;line-height:1.45;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nexus-sidebar-history .history-list .job small{font-size:10px;color:#8299b7}
+.nexus-sidebar-history .history-list .job[aria-pressed=true],.nexus-sidebar-history .history-list .job:hover{background:#24344c;color:#f0f7ff}
+.nexus-sidebar-history .history-list .placeholder{padding:10px 12px}
+body.nexus-chat-app .content{max-width:none;width:100%;padding:0;min-width:0}
+.nexus-chat-top{position:sticky;top:0;z-index:12;min-height:64px;background:rgba(11,17,29,.95);
+ backdrop-filter:blur(20px);border-bottom:1px solid #293348;
+ display:flex;align-items:center;justify-content:space-between;padding:10px clamp(16px,3vw,34px);gap:12px}
+.nexus-top-identity{display:flex;align-items:center;gap:9px}
+.nexus-top-identity strong{font-size:15px;font-weight:740;color:#eff6ff;letter-spacing:-.02em}
+.nexus-top-star{display:grid;place-items:center;border-radius:11px;background:#1d4268;
+ height:30px;width:30px;color:#b4d8ff;font-size:19px}
+.nexus-top-right{display:flex;align-items:center;gap:14px}
+.nexus-top-status{color:#99b6d1;background:#19263b;border-radius:30px;border:1px solid #334660;
+ padding:7px 10px;font-size:11px;white-space:nowrap}
+.nexus-connected .nexus-top-status{color:#b6f1db;background:#17372f;border-color:#2b5a4c}
+.nexus-icon-button,.nexus-mobile-menu{border:1px solid #34445c;border-radius:10px;min-width:36px;
+ min-height:36px;background:#16263b;color:#cfe4ff;font-size:17px}
+.nexus-mobile-menu{display:none}
+.nexus-body{min-height:calc(100dvh - 64px)}
+.nexus-chat-pane{max-width:1020px;margin:0 auto;min-height:calc(100dvh - 64px);
+ display:flex;flex-direction:column;padding:16px clamp(14px,4vw,44px) 22px}
+.nexus-chat-pane[hidden],.nexus-tool-pane[hidden],.nexus-tool-view[hidden],.nexus-advanced[hidden],
+.nexus-chat-empty[hidden],.nexus-chat-login[hidden],#history-panel[hidden]{display:none!important}
+.nexus-chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ text-align:center;padding:50px 15px 34px;min-height:300px}
+.nexus-greeting-symbol{height:56px;width:56px;display:grid;place-items:center;border-radius:17px;
+ background:linear-gradient(145deg,#224879,#3c72af);color:#e3f3ff;font-size:34px;box-shadow:0 10px 40px rgba(47,120,210,.16)}
+.nexus-chat-empty h1{font-size:clamp(26px,3vw,38px);margin:22px 0 8px;letter-spacing:-.045em;
+ font-weight:690;max-width:650px;color:#f5f8ff}
+.nexus-chat-empty p{font-size:14px;color:#9eb2cc;max-width:570px}
+.nexus-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:min(100%,650px);margin-top:32px}
+.nexus-suggestion{border:1px solid #304158;background:#151e30;border-radius:13px;min-height:66px;
+ display:flex;align-items:center;gap:13px;text-align:left;padding:15px;color:#d7e8fb;transition:background .15s,border-color .15s}
+.nexus-suggestion:hover{background:#1d314c;border-color:#507cae}
+.nexus-suggestion strong{font-size:12px;font-weight:610}
+.nexus-suggestion-icon{display:grid;place-items:center;flex:0 0 33px;width:33px;height:33px;
+ border-radius:10px;background:#253d5a;color:#b6d8ff;font-size:18px}
+.nexus-chat-login .access.card{margin:8px auto 26px;padding:20px;max-width:620px}
+.nexus-chat-login .access .eyebrow{color:#a7c9e8}
+.nexus-chat-login .access h2{font-size:1.15rem}
+.nexus-chat-pane #history-panel{padding:0;border:0;background:transparent;margin:0;box-shadow:none;
+ width:100%;flex:1;min-height:150px}
+.nexus-chat-pane #history-panel>.section-head{display:none}
+.nexus-chat-pane .chat-thread{margin-top:0;border:0;background:transparent;border-radius:0;overflow:visible;padding-bottom:20px}
+.nexus-chat-pane .chat-thread-head{background:transparent;border-bottom:1px solid #253246;padding:7px 5px 13px;margin-bottom:15px}
+.nexus-chat-pane .chat-turn{border:0!important;border-radius:0;background:transparent}
+.nexus-chat-pane .chat-user{margin:8px 0 10px}
+.nexus-chat-pane .chat-user .chat-message{background:#26344a;border-color:#364863;max-width:min(84%,700px)}
+.nexus-chat-pane .chat-assistant{padding-bottom:21px}
+.nexus-chat-pane .chat-team-details{margin-top:2px;margin-bottom:23px;background:#101a2b}
+.nexus-chat-pane .chat-notice{margin-top:12px;margin-bottom:15px}
+.nexus-chat-pane .chat-message-body .answer-markdown{color:#dfeaf7}
+.nexus-composer-holder{position:sticky;bottom:0;z-index:10;padding:12px 0 max(16px,env(safe-area-inset-bottom,0px));
+ background:linear-gradient(0deg,#090d16 78%,rgba(9,13,22,0))}
+.nexus-composer-holder .workspace-section{margin:0}
+.nexus-composer-holder .composer{margin:0;padding:15px 16px 11px;border:1px solid #42546f;
+ border-radius:21px;background:#182237;box-shadow:0 13px 35px rgba(0,0,0,.20)}
+.nexus-composer-holder #topic{border:0;background:transparent;box-shadow:none;min-height:64px;
+ max-height:180px;resize:vertical;padding:7px 5px;font-size:15px;line-height:1.55}
+.nexus-composer-holder #topic:focus-visible{outline:none}
+.nexus-composer-holder #topic::placeholder{color:#9cb0ce}
+.nexus-composer-actions{display:flex;align-items:center;gap:8px;min-height:38px;flex-wrap:wrap}
+.nexus-small-action{min-height:36px;border-radius:9px;border:1px solid #344964;background:#23334b;
+ color:#d1e4fa;padding:8px 11px;font-size:11px;font-weight:640}
+.nexus-small-action:hover{background:#2f4867}
+.nexus-models-label{color:#92a7c5;font-size:11px}
+.nexus-flex{flex:1}
+.nexus-send{background:#d4eaff;color:#10283d;border:0;border-radius:11px;padding:9px 18px;
+ font-size:12px;font-weight:790;min-height:37px}
+.nexus-send:hover:not(:disabled){background:#f1f8ff}
+.nexus-composer-caption{text-align:center;color:#7e91ab;font-size:10px;margin-top:9px;letter-spacing:.005em}
+.nexus-attached-preview{display:flex;flex-wrap:wrap;gap:6px}
+.nexus-file-chip{background:#25405c;border:1px solid #3d6386;border-radius:9px;color:#d5ecff;
+ font-size:11px;padding:6px 9px}
+.nexus-advanced{padding:14px 3px 2px;margin-top:12px;border-top:1px solid #334862;
+ max-height:min(56dvh,540px);overflow:auto}
+.nexus-option-title{font-size:13px;font-weight:750;color:#e6f1ff;padding:4px 4px 14px}
+.nexus-composer .workflow-tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nexus-composer .tile{min-height:90px;padding:12px;border-radius:11px;display:block}
+.nexus-composer .tile-art{display:none}
+.nexus-composer .tile strong{font-size:11px}
+.nexus-composer .tile small{font-size:10px}
+.nexus-composer .tile-arrow{display:none}
+.nexus-composer .file-import{margin:13px 0;padding:12px}
+.nexus-composer .providers{grid-template-columns:repeat(auto-fit,minmax(142px,1fr))}
+.nexus-run-controls{margin-top:9px}
+.nexus-run-controls .nexus-run-button{font-size:11px;padding:8px;min-height:35px}
+.nexus-composer .form-pair{gap:10px}
+.nexus-tool-pane{max-width:1120px;margin:0 auto;padding:25px clamp(16px,3vw,38px) 70px}
+.nexus-tool-pane .workspace-section{margin-top:12px}
+.nexus-tool-pane .card{margin-top:15px}
+.nexus-tool-pane .heading-row{align-items:center;margin-bottom:18px}
+.nexus-tool-pane .source-tools{grid-template-columns:repeat(3,minmax(0,1fr))}
+.nexus-tool-pane .source-tool{border-radius:16px}
+.nexus-tool-pane .source-tool h3{font-size:15px}
+.nexus-tool-pane .source-tool p{font-size:12px}
+.nexus-tool-pane .source-tool input,.nexus-tool-pane .source-tool select{max-width:100%}
+.nexus-tool-pane .mini-card{min-height:90px}
+.nexus-tool-pane .overview-cards{margin-top:15px}
+.nexus-tool-pane .settings-tip{margin-top:22px}
+.nexus-tool-pane .share-install{margin-top:12px}
+.nexus-tool-pane .footer{margin-top:25px}
+.nexus-drawer-backdrop{display:none}
+.nexus-mobile-tabs{display:none}
+@media(max-width:1200px){
+ body.nexus-chat-app .layout{grid-template-columns:236px minmax(0,1fr)}
+ .nexus-tool-pane .source-tools{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:810px){
+ body.nexus-chat-app .layout{display:block}
+ body.nexus-chat-app .sidebar{position:fixed;transform:translateX(-104%);transition:transform .19s ease;
+  left:0;top:0;bottom:0;width:min(83vw,320px);height:100dvh;box-shadow:6px 0 40px rgba(0,0,0,.32)}
+ body.nexus-sidebar-open .sidebar{transform:translateX(0)}
+ .nexus-mobile-menu{display:block}
+ .nexus-drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:25}
+ body.nexus-sidebar-open .nexus-drawer-backdrop{display:block}
+ .nexus-mobile-tabs{position:fixed;bottom:0;left:0;right:0;z-index:18;display:grid;
+  grid-template-columns:repeat(4,1fr);background:rgba(15,24,38,.97);border-top:1px solid #2b3d56;
+  backdrop-filter:blur(14px);padding:7px 6px max(6px,env(safe-area-inset-bottom,0px))}
+ .nexus-mobile-tabs button{font-size:11px;color:#a8bdd9;border:0;border-radius:8px;background:none;
+  min-height:41px;font-weight:640;padding:6px 1px}
+ .nexus-mobile-tabs button:active{background:#263953}
+ .nexus-chat-pane{min-height:calc(100dvh - 65px);padding:12px 16px 105px}
+ .nexus-composer-holder{bottom:55px;padding-bottom:8px}
+ .nexus-tool-pane{padding-bottom:105px}
+ .nexus-top-status{font-size:10px}
+}
+@media(max-width:560px){
+ .nexus-chat-top{padding:10px 13px;min-height:58px}
+ .nexus-top-right{gap:8px}
+ .nexus-top-identity strong{font-size:14px}
+ .nexus-chat-empty{padding:30px 0 18px}
+ .nexus-chat-empty h1{font-size:25px;margin:14px 0 5px}
+ .nexus-chat-empty p{font-size:12px}
+ .nexus-suggestions{grid-template-columns:1fr 1fr;gap:7px;margin-top:22px}
+ .nexus-suggestion{padding:9px;min-height:58px;gap:8px}
+ .nexus-suggestion-icon{flex-basis:27px;height:27px;width:27px;font-size:15px}
+ .nexus-suggestion strong{font-size:10px}
+ .nexus-chat-pane{padding:10px 12px 105px}
+ .nexus-chat-pane .chat-turn{padding:14px 5px}
+ .nexus-chat-pane .chat-user .chat-message{max-width:90%;border-radius:13px;padding:10px 13px}
+ .nexus-chat-pane .chat-avatar{flex-basis:27px;width:27px;height:27px;font-size:14px}
+ .nexus-composer-holder .composer{border-radius:16px;padding:10px}
+ .nexus-composer-holder #topic{font-size:14px;min-height:50px;padding:6px 3px}
+ .nexus-models-label{display:none}
+ .nexus-small-action{padding:7px 9px}
+ .nexus-composer .workflow-tiles{grid-template-columns:1fr 1fr 1fr}
+ .nexus-composer .tile{padding:8px}
+ .nexus-composer .tile strong{font-size:10px}
+ .nexus-composer .tile small{display:none}
+ .nexus-tool-pane .source-tools{grid-template-columns:1fr}
+ .nexus-tool-pane{padding:13px 12px 100px}
+ .nexus-tool-pane .heading-row h2{font-size:1.3rem}
+}
+@media(prefers-reduced-motion:reduce){body.nexus-chat-app .sidebar{transition:none}}
