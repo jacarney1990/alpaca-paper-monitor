@@ -87,6 +87,20 @@
  investing.appendChild($('finance-workflows'));
  const system=mk('div','nexus-tool-view');system.id='nexus-view-system';
  system.append($('diagnostics'),document.querySelector('.overview-cards'));
+ const investAsk=mk('button','btn primary','Ask Nexus to review an investing idea');
+ investAsk.type='button';investAsk.addEventListener('click',()=>{
+  show('chat');chooseWorkflow('investment');
+  question.value='Help me evaluate an investing idea. Compare evidence, risks and alternative scenarios.';
+  question.focus();
+ });
+ investing.appendChild(investAsk);
+ const healthAsk=mk('button','btn secondary','Discuss system health with Nexus');
+ healthAsk.type='button';healthAsk.addEventListener('click',()=>{
+  show('chat');chooseWorkflow('project');
+  question.value='Explain how to assess an AI platform for reliability and production readiness.';
+  question.focus();
+ });
+ system.appendChild(healthAsk);
  const settings=mk('div','nexus-tool-view');settings.id='nexus-view-settings';
  settings.append($('share-panel'),document.querySelector('.settings-tip'));
  const legacyFooter=main.querySelector('.footer');if(legacyFooter)settings.appendChild(legacyFooter);
@@ -98,6 +112,10 @@
   $('access-state').textContent='● Not connected';
   $('access-caption').textContent='Enter your private access code to use your AI team.';
   $('history').replaceChildren();$('output').replaceChildren();
+  for(const id of ['providers','verify-results','source-status','source-results','finance-status','missing-keys']){
+   const item=$(id);if(item)item.replaceChildren();
+  }
+  statusCache=null;
   $('launch').disabled=true;importedFiles.splice(0);drawImportedFiles();
   $('topic').value='';
   login.appendChild($('settings'));
