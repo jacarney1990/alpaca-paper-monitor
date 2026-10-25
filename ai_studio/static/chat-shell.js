@@ -146,7 +146,11 @@
  const composer=mission.querySelector('.composer');
  composer.classList.add('nexus-composer');
  const composerHeader=composer.querySelector(':scope > .section-head');
- if(composerHeader)composerHeader.remove();
+ if(composerHeader){
+  const workflowTag=$('workflow-tag');
+  if(workflowTag){workflowTag.hidden=true;composer.appendChild(workflowTag);}
+  composerHeader.remove();
+ }
  const label=composer.querySelector('label[for="topic"]');
  if(label)label.classList.add('sr-only');
  const question=$('topic');
@@ -211,7 +215,7 @@
    (name==='settings'&&b.id==='nav-history')));
   document.body.classList.remove('nexus-sidebar-open');
   sync();
-  main.scrollIntoView({behavior:'smooth',block:'start'});
+  window.scrollTo({top:0,behavior:'instant'});
  }
  function clearChat(){
   activeId=null;
@@ -246,7 +250,7 @@
   if(tool==='investing'&&token&&typeof loadFinance==='function')loadFinance().catch(()=>{});
  }
  newBtn.onclick=clearChat;
- menu.onclick=()=>document.body.classList.toggle('nexus-sidebar-open');
+ menu.onclick=()=>{document.body.classList.toggle('nexus-sidebar-open');menu.setAttribute('aria-expanded',String(document.body.classList.contains('nexus-sidebar-open')));};
  settingsBtn.onclick=()=>present('settings');
  state.onclick=()=>{present('settings');$('token')?.focus();};
  $('nav-command').onclick=()=>show('chat');
