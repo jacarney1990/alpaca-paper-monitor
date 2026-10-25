@@ -80,7 +80,8 @@ def invoke(name, system, prompt):
                 headers={"Authorization": "Bearer " + key,
                          "HTTP-Referer": "https://multi-ai-intelligence-studio.onrender.com",
                          "X-Title": "Nexus AI Studio"},
-                json={"model": model, "max_tokens": output_token_limit(),
+                json={"model": model, "max_tokens": max(2400, output_token_limit()),
+                      "reasoning": {"effort": "low"},
                       "messages": [{"role": "system", "content": system},
                                    {"role": "user", "content": prompt}]})
         else:
@@ -151,7 +152,7 @@ def run_task(topic, mode, specialization, providers, workflow):
     if mode == "team" and len(selected) == 1:
         name = selected[0]
         stages = [
-            ("Collector", "Collect evidence provided in the prompt. Identify missing documents and source gaps. Do not claim to have browsed or verified external sources."),
+            ("Collector", "Summarize supplied evidence in at most 250 words with source dates and links. Identify missing data. Do not claim to have browsed."),
             ("Analyst", "Analyze the Collector's evidence. Separate supported findings from assumptions, quantify only when numbers are supplied."),
             ("Validator", "Challenge the Analyst's claims against the Collector's evidence. Flag unsupported statements, contradictions and missing sources."),
         ]
