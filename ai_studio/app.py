@@ -595,13 +595,31 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
                         unmatched = sorted({v for v in claimed if round(v, 2) not in known_values})
                         result["numeric_checks"]["reported_rates_not_in_source"] = unmatched[:20]
                         result["numeric_checks"]["rate_claims_checked"] = len(claimed)
-                        result["numeric_checks"]["validation_scope"] = "Literal percentage rates only; no date-value matching, derived changes or semantic claim checking."
+                        result["numeric_checks"]["validation_scope"] = "Literal percentage rates and simple same-line YYYY-MM date-rate pairs; no derived-change or semantic verification."
                         result["numeric_checks"]["status"] = "review_needed" if unmatched else "limited_pass" if claimed else "no_rate_claims"
+                        source_dates = {date[:7]: value for date, value in points}
+                        dated_claims = []
+                        for line in report.splitlines():
+                            for date_match in re.finditer(r"20[0-9]{2}[-/](?:0[1-9]|1[0-2])", line):
+                                month = date_match.group().replace("/", "-")
+                                tail = line[date_match.end():date_match.end() + 75]
+                                rate_match = re.search(r"(?<![0-9.])([0-9]{1,2}(?:[.][0-9]{1,2})?)\\s*%", tail)
+                                if rate_match and month in source_dates:
+                                    reported = float(rate_match.group(1))
+                                    actual = source_dates[month]
+                                    dated_claims.append({"month": month, "reported": reported,
+                                                         "source": actual, "matches": abs(reported - actual) < 0.005})
+                        result["numeric_checks"]["dated_rate_checks"] = dated_claims[:25]
+                        result["numeric_checks"]["dated_rate_mismatches"] = sum(not x["matches"] for x in dated_claims)
+                        if result["numeric_checks"]["dated_rate_mismatches"]:
+                            result["numeric_checks"]["status"] = "review_needed"
+                        result["numeric_checks"]["source_freshness"] = "stale" if series.get("stale") or series.get("status") == "stale" else "not_flagged_stale"
+
                 except SourceError:
                     pass
             result["verification"] = {
                 "report_generated_at_utc": datetime.now(timezone.utc).isoformat(),
-                "independent_numeric_validation": "not_performed",
+                "independent_numeric_validation": "limited_reference_checks_if_available",
                 "source_verification": "source metadata only; full documents not verified",
                 "caution": "Agent completion does not imply factual or numerical verification.",
             }
