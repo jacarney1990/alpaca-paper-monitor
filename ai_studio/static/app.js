@@ -124,77 +124,97 @@ function chatTeamDetails(parent,output) {
  details.appendChild(inner);parent.appendChild(details);
 }
 async function history(){
- const data=await api('/api/jobs');$('history').replaceChildren();
+ const data=await api('/api/jobs'),target=$('history');target.replaceChildren();
  if(!data.length){
   const empty=document.createElement('p');empty.className='placeholder';
-  empty.textContent='No conversations yet. Launch a research mission above.';
-  $('history').appendChild(empty);
+  empty.textContent='Your conversations will appear here.';target.appendChild(empty);
  }
+ const jobs=new Map(data.map(job=>[job.id,job])),groups=new Map();
  for(const job of data){
-  const button=document.createElement('button');button.type='button';button.className='job';
-  button.dataset.jobId=job.id;button.setAttribute('aria-pressed',String(job.id===activeId));
-  const meta=document.createElement('small');meta.textContent=job.workflow+' · '+job.status+' · '+job.created.slice(0,16).replace('T',' ');
-  button.append(document.createTextNode(job.topic.slice(0,135)),meta);
-  button.onclick=()=>showJob(job.id).catch(e=>tell(e.message,true));$('history').appendChild(button);
+  let root=job,seen=new Set([job.id]);
+  while(root.parent_id&&jobs.has(root.parent_id)&&!seen.has(root.parent_id)){
+   root=jobs.get(root.parent_id);seen.add(root.id);
+  }
+  const old=groups.get(root.id);
+  if(!old)groups.set(root.id,{root,latest:job,count:1});
+  else{old.count++;if(job.created>old.latest.created)old.latest=job;}
  }
+ for(const group of [...groups.values()].sort((a,b)=>b.latest.created.localeCompare(a.latest.created))){
+  const button=document.createElement('button');button.type='button';button.className='job';
+  button.dataset.jobId=group.latest.id;
+  button.setAttribute('aria-pressed',String(group.latest.id===activeId));
+  const title=document.createElement('strong');title.textContent=group.root.topic.slice(0,72);
+  const info=document.createElement('small');
+  info.textContent=group.count+' turn'+(group.count===1?'':'s')+' · '+group.latest.created.slice(0,10);
+  button.append(title,info);
+  button.onclick=()=>{window.NexusShell?.show('chat');showJob(group.latest.id).catch(e=>tell(e.message,true));};
+  target.appendChild(button);
+ }
+ window.NexusShell?.onHistory(data);
+}
+function renderChatTurn(thread,result){
+ const out=result.output||{},demo=Boolean(out.simulation),status=result.status;
+ chatMessage(thread,{role:'user',name:'You',text:result.topic});
+ if(status==='running'){
+  const thinking=document.createElement('div');thinking.className='chat-thinking';
+  const star=document.createElement('span');star.className='chat-thinking-icon';star.textContent='✦';
+  const label=document.createElement('div');
+  const title=document.createElement('strong');title.textContent='Nexus is researching…';
+  const description=document.createElement('p');description.textContent='Your AI team is preparing a response.';
+  const dots=document.createElement('span');dots.className='chat-thinking-dots';dots.textContent='● ● ●';
+  label.append(title,description,dots);thinking.append(star,label);thread.appendChild(thinking);
+  return;
+ }
+ if(demo)chatNotice(thread,'PRACTICE — scripted examples, not actual AI research.',true);
+ if(out.notice)chatNotice(thread,out.notice,demo);
+ if(out.error)chatNotice(thread,'Mission error: '+out.error,true);
+ if(out.mode==='team'){
+  if(out.synthesis)chatMessage(thread,{name:'Nexus',subtitle:'Combined team answer',text:out.synthesis,
+   status:status==='failed'?'failed':''});
+  else if((out.initial||[]).length)chatNotice(thread,'No combined answer. Expand individual findings below.',true);
+  chatTeamDetails(thread,out);
+ }else{
+  for(const entry of out.initial||[]){
+   chatMessage(thread,{name:entry.provider||'AI Agent',subtitle:'Independent answer',
+    text:entry.answer||entry.error||'No response',status:entry.status==='failed'?'failed':''});
+  }
+  if((out.cross_review||[]).length)chatTeamDetails(thread,{cross_review:out.cross_review});
+ }
+ if(out.completed!==undefined){
+  const foot=document.createElement('div');foot.className='chat-run-summary';
+  foot.textContent=out.completed+' of '+out.requested+' agents responded · '+(out.team_status||'Practice')+
+   ' · No brokerage orders';thread.appendChild(foot);
+ }else if(status==='interrupted'||status==='failed')
+  chatNotice(thread,'The answer did not complete. You can retry with another question.',true);
 }
 async function showJob(id,{focus=true}={}){
  activeId=id;clearTimeout(timer);
- const result=await api('/api/jobs/'+id);
- if(activeId!==id)return;
+ const chain=[],seen=new Set();let cursor=id;
+ while(cursor&&chain.length<8&&!seen.has(cursor)){
+  seen.add(cursor);
+  try{
+   const entry=await api('/api/jobs/'+encodeURIComponent(cursor));
+   if(activeId!==id)return;
+   chain.unshift(entry);cursor=entry.parent_id;
+  }catch(e){if(!chain.length)throw e;break;}
+ }
+ const latest=chain[chain.length-1];
+ if(!latest)return;
  const display=$('output');display.replaceChildren();
- const out=result.output||{},demo=Boolean(out.simulation),status=result.status;
  const thread=document.createElement('div');thread.className='chat-thread';
  const heading=document.createElement('div');heading.className='chat-thread-head';
  const title=document.createElement('strong');title.textContent='Conversation';
- const meta=document.createElement('span');meta.textContent=(result.workflow||'research')+' · '+
-  (demo?'Practice simulation':status==='running'?'Working':status==='complete'?'Complete':status);
+ const meta=document.createElement('span');meta.textContent=chain.length+' turn'+(chain.length===1?'':'s')+
+  ' · '+(latest.status==='running'?'Researching':latest.status);
  heading.append(title,meta);thread.appendChild(heading);
- chatMessage(thread,{role:'user',name:'You',text:result.topic});
- if(status==='running'){
-  const typing=document.createElement('div');typing.className='chat-thinking';
-  const dot=document.createElement('span');dot.className='chat-thinking-icon';dot.textContent='✦';
-  const copy=document.createElement('div');
-  const label=document.createElement('strong');label.textContent='Nexus is working on your answer';
-  const explanation=document.createElement('p');
-  explanation.textContent='Your agents may be comparing findings. The completed response will appear here.';
-  const pulse=document.createElement('span');pulse.className='chat-thinking-dots';
-  pulse.textContent='● ● ●';pulse.setAttribute('aria-hidden','true');
-  copy.append(label,explanation,pulse);typing.append(dot,copy);thread.appendChild(typing);
- }else {
-  if(demo)chatNotice(thread,'PRACTICE ONLY — these are scripted examples, not real AI research.',true);
-  if(out.notice)chatNotice(thread,out.notice,demo);
-  if(out.error)chatNotice(thread,'Mission error: '+out.error,true);
-  if(out.mode==='team'){
-   if(out.synthesis){
-    chatMessage(thread,{name:'Nexus',subtitle:'Combined team answer',
-     text:out.synthesis,status:status==='failed'?'failed':''});
-   }else if((out.initial||[]).length){
-    chatNotice(thread,'A combined answer was not produced. Review the individual agent findings below.',true);
-   }
-   chatTeamDetails(thread,out);
-  }else{
-   for(const entry of out.initial||[]){
-    chatMessage(thread,{name:entry.provider||'AI Agent',subtitle:'Independent answer',
-     text:entry.answer||entry.error||'No response',status:entry.status==='failed'?'failed':''});
-   }
-   if((out.cross_review||[]).length)chatTeamDetails(thread,{cross_review:out.cross_review});
-  }
-  if(out.completed!==undefined){
-   const foot=document.createElement('div');foot.className='chat-run-summary';
-   foot.textContent=out.completed+' of '+out.requested+' agents responded · Team: '+
-    (out.team_status||'practice')+' · Brokerage orders: disabled';
-   thread.appendChild(foot);
-  }else if(status==='interrupted'||status==='failed'){
-   chatNotice(thread,'This mission did not complete. Review the error above or start another mission.',true);
-  }
- }
+ if(cursor)chatNotice(thread,'Showing the most recent eight turns. Older history may be available.');
+ for(const entry of chain)renderChatTurn(thread,entry);
  display.appendChild(thread);
- for(const button of $('history').querySelectorAll('button.job')){
-  button.setAttribute('aria-pressed',String(button.dataset.jobId===id));
- }
+ for(const b of $('history').querySelectorAll('button.job'))
+  b.setAttribute('aria-pressed',String(b.dataset.jobId===id));
+ window.NexusShell?.onJobShown();
  if(focus)jump('history-panel');
- if(status==='running')timer=setTimeout(()=>showJob(id,{focus:false}).catch(e=>tell(e.message,true)),3500);
+ if(latest.status==='running')timer=setTimeout(()=>showJob(id,{focus:false}).catch(e=>tell(e.message,true)),3500);
 }
 function drawImportedFiles(){
  const list=$('file-list');list.replaceChildren();
