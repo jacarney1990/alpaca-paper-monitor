@@ -1,11 +1,13 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let token='', activeId=null, timer=null, statusCache=null, currentWorkflow='research';
+const importedFiles=[];
+const MAX_IMPORT_BYTES=5*1024*1024, MAX_TOTAL_IMPORT_CHARS=18000;
 const KEY_NAMES={OpenAI:'OPENAI_API_KEY',Claude:'ANTHROPIC_API_KEY',Gemini:'GEMINI_API_KEY',Groq:'GROQ_API_KEY','OpenRouter Free':'OPENROUTER_API_KEY'};
 function tell(message,error=false){const el=$('feedback');el.textContent=message;el.classList.toggle('error',error);}
 async function api(path,opts={}){
  if(!token)throw Error('Connect your private workspace first.');
- const response=await fetch(path,{...opts,headers:{'X-Studio-Token':token,'Content-Type':'application/json',...(opts.headers||{})},cache:'no-store'});
+ const response=await fetch(path,{...opts,headers:{'X-Studio-Token':token,...(opts.body instanceof FormData?{}:{'Content-Type':'application/json'}),...(opts.headers||{})},cache:'no-store'});
  let data;try{data=await response.json()}catch{throw Error('The server sent an unreadable response. Please try again.')}
  if(!response.ok)throw Error(data.error||'Request failed ('+response.status+').');
  return data;
@@ -109,18 +111,68 @@ async function showJob(id){
  jump('history-panel');
  if(result.status==='running')timer=setTimeout(()=>showJob(id).catch(e=>tell(e.message,true)),3500);
 }
+function drawImportedFiles(){
+ const list=$('file-list');list.replaceChildren();
+ for(let i=0;i<importedFiles.length;i++){
+  const item=importedFiles[i],line=document.createElement('div');line.className='file-item';
+  const summary=document.createElement('span');
+  summary.textContent=item.name+' · '+item.text.length.toLocaleString()+' characters'+(item.truncated?' · shortened':'');
+  const remove=document.createElement('button');remove.type='button';remove.className='file-remove';
+  remove.textContent='Remove';remove.setAttribute('aria-label','Remove '+item.name);
+  remove.onclick=()=>{importedFiles.splice(i,1);drawImportedFiles();};
+  line.append(summary,remove);list.appendChild(line);
+ }
+ $('file-status').textContent=importedFiles.length?
+  importedFiles.length+' file(s) ready for your next mission ('+
+  importedFiles.reduce((n,f)=>n+f.text.length,0).toLocaleString()+' characters extracted).':
+  'No documents imported.';
+}
+async function importPhoneFiles(){
+ const input=$('file-input'),selected=[...input.files];
+ if(!selected.length)return;
+ input.disabled=true;
+ const problems=[];
+ try{
+  if(!token)throw Error('Connect your private workspace before importing a file.');
+  for(const file of selected){
+   if(importedFiles.length>=3){problems.push('You can attach at most three files.');break;}
+   if(file.size>MAX_IMPORT_BYTES){problems.push(file.name+': larger than 5 MB.');continue;}
+   if(importedFiles.some(f=>f.name===file.name)){problems.push(file.name+': already imported.');continue;}
+   try{
+    const body=new FormData();body.append('file',file,file.name);
+    $('file-status').textContent='Importing '+file.name+'…';
+    const parsed=await api('/api/files/extract',{method:'POST',body});
+    const existing=importedFiles.reduce((sum,f)=>sum+f.text.length,0);
+    if(existing+parsed.text.length>MAX_TOTAL_IMPORT_CHARS){
+     problems.push(file.name+': combined text exceeds 18,000 characters. Remove a file first.');
+     continue;
+    }
+    importedFiles.push(parsed);
+   }catch(e){problems.push(file.name+': '+e.message);}
+  }
+ }catch(e){problems.push(e.message);}
+ finally{
+  input.value='';input.disabled=false;drawImportedFiles();
+  if(problems.length)tell(problems.join(' '),true);
+  else tell('Document import complete. Tell your AI team what to analyze.');
+ }
+}
+$('file-input').addEventListener('change',importPhoneFiles);
+
 async function launch(demo=false){
  const button=demo?$('practice'):$('launch');button.disabled=true;
  const selected=[...document.querySelectorAll('.provider input:checked')].map(el=>el.value);
  const providers=selected.length?selected:(demo?['OpenAI','Gemini','Groq']:[]);
  let topic=$('topic').value.trim();
+ if(!topic&&importedFiles.length){topic='Analyze my attached files, summarize key findings, identify inconsistencies, and suggest next steps.';$('topic').value=topic;}
  if(demo&&!topic){topic='Create a short team plan to research a new idea, check assumptions, and explain risks.';$('topic').value=topic;}
  try{
   if(topic.length<3)throw Error('Tell your team what you would like to explore.');
   if(!providers.length)throw Error('Select at least one AI teammate.');
-  const request={topic,workflow:currentWorkflow,mode:$('mode').value,role:$('role').value,providers,demo};
+  const request={topic,workflow:currentWorkflow,mode:$('mode').value,role:$('role').value,providers,demo,
+   attachments:importedFiles.map(({name,text})=>({name,text}))};
   const job=await api('/api/jobs',{method:'POST',body:JSON.stringify(request)});
-  tell(demo?'Practice mission started. All results are simulated; no AI calls were made.':'Live AI mission started. Check progress below.');
+  tell(demo?'Practice mission started. Documents were imported, but practice answers are simulated and do not analyze their contents.':'Live AI mission started with '+importedFiles.length+' imported file(s). Check progress below.');
   await history();await showJob(job.id);
  }catch(e){tell(e.message,true);}finally{button.disabled=false;}
 }
