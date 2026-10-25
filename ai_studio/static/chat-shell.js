@@ -10,6 +10,7 @@
   return e;
  };
  const main=document.querySelector('main.content');
+ window.addEventListener('error',event=>{const el=document.getElementById('nexus-init-error')||document.createElement('div');el.id='nexus-init-error';el.style.cssText='position:fixed;bottom:70px;left:10px;right:10px;z-index:9999;background:#742b34;color:white;padding:12px;border-radius:8px;font-size:12px';el.textContent='Nexus interface error: '+event.message+' ('+(event.filename||'').split('/').pop()+':'+event.lineno+')';document.body.appendChild(el);});
  const side=document.querySelector('.sidebar');
  if(!main||!side||!$('mission')||!$('history-panel'))return;
  main.classList.add('nexus-chat-main');
