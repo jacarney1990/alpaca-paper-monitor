@@ -101,7 +101,9 @@ def invoke(name, system, prompt):
             detail = " (" + code + ")" if isinstance(code, str) and code in permitted_codes else ""
             raise ProviderError("Provider HTTP " + str(r.status_code) + detail)
         body = r.json()
-        if name == "OpenAI":
+        if name == "Ollama Local":
+            answer = body.get("message", {}).get("content", "")
+        elif name == "OpenAI":
             answer = _text_openai(body)
         elif name == "Claude":
             answer = "\n".join(p.get("text", "") for p in body.get("content", []) if p.get("type") == "text")
