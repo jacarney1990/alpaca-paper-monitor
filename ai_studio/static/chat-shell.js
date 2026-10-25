@@ -35,7 +35,12 @@
  nav.before(newBtn);
  const historyHeading=mk('div','nexus-side-caption','Recent conversations');
  const sidebarHistory=mk('div','nexus-sidebar-history');
- sidebarHistory.append(historyHeading,$('history'));
+ const refresh=mk('button','nexus-history-refresh','↻ Refresh history');
+ refresh.type='button';refresh.addEventListener('click',()=>{
+  if(!token)return;
+  history().catch(error=>tell(error.message,true));
+ });
+ sidebarHistory.append(historyHeading,refresh,$('history'));
  nav.after(sidebarHistory);
 
  const body=mk('div','nexus-body');
