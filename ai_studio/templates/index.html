@@ -12,6 +12,7 @@
 <meta name="description" content="Your private AI workspace for research, project work and read-only investment intelligence.">
 <title>Nexus | Your AI workspace</title>
 <link rel="stylesheet" href="/static/style.css">
+<script defer src="/static/answer-renderer.js"></script>
 <script defer src="/static/app.js"></script>
 <script defer src="/static/install.js"></script>
 </head>
@@ -203,16 +204,16 @@
     </div>
 
     <section id="history-panel" class="card archive">
-      <div class="section-head"><div><div class="eyebrow">YOUR WORK</div><h2>Mission history &amp; answers</h2><p>Open past results or watch a running mission finish.</p></div><button class="btn secondary small" id="reload" type="button">↻ Refresh</button></div>
+      <div class="section-head"><div><div class="eyebrow">YOUR CONVERSATIONS</div><h2>AI answers &amp; history</h2><p>Read formatted AI responses, copy answers, or expand each agent’s research and peer review.</p></div><button class="btn secondary small" id="reload" type="button">↻ Refresh</button></div>
       <div id="history" class="history-list"><p class="placeholder">Your missions will appear here after connecting.</p></div>
-      <div id="output" aria-live="polite"></div>
+      <div id="output" aria-label="AI conversation results"><p class="placeholder">Choose a mission above to see its conversation and AI answer.</p></div>
     </section>
 
     <section class="settings-tip card" aria-label="Provider setup">
       <div class="section-head"><div><div class="eyebrow">SETTINGS &amp; CONNECTIONS</div><h2>Manage your AI keys</h2><p id="provider-guidance">Connect to see which providers have API keys saved.</p></div><a class="btn secondary small" href="https://dashboard.render.com/web/srv-dbaedtbncjis73d8hm60" target="_blank" rel="noopener noreferrer">Open Render ↗</a></div>
       <div id="missing-keys" class="missing-keys"></div>
       <p class="muted-note">Optional free AI: <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer">create an OpenRouter API key</a> and save it as <code>OPENROUTER_API_KEY</code> on Render. Nexus only permits <code>openrouter/free</code> or free-suffix models. Free tiers have limits and require an account.</p>
-      <p class="muted-note">Your credentials stay on Render. Never paste keys into chat. API usage remains disabled unless explicitly authorized. Free Render storage is not permanent; mission history may disappear after restarts.</p>
+      <p class="muted-note">Your credentials stay on Render. Never paste keys into chat. Live AI usage depends on your current settings and provider quotas; some calls may be billed. Free Render storage is not permanent; mission history may disappear after restarts.</p>
     </section>
 
     <footer class="footer">✦ NEXUS INTELLIGENCE STUDIO <span>Research only · No brokerage execution · Practice results are simulations</span></footer>
