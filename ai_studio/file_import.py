@@ -91,7 +91,9 @@ def read_pptx(data):
     try:
         presentation = Presentation(BytesIO(data))
         lines = []
-        for i, slide in enumerate(presentation.slides[:60], 1):
+        for i, slide in enumerate(presentation.slides, 1):
+            if i > 60:
+                break
             lines.append("Slide " + str(i))
             for shape in slide.shapes:
                 if shape.has_text_frame and shape.text.strip():
