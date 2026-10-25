@@ -132,7 +132,7 @@ async function history(){
  }
  for(const job of data){
   const button=document.createElement('button');button.type='button';button.className='job';
-  button.setAttribute('aria-pressed',String(job.id===activeId));
+  button.dataset.jobId=job.id;button.setAttribute('aria-pressed',String(job.id===activeId));
   const meta=document.createElement('small');meta.textContent=job.workflow+' · '+job.status+' · '+job.created.slice(0,16).replace('T',' ');
   button.append(document.createTextNode(job.topic.slice(0,135)),meta);
   button.onclick=()=>showJob(job.id).catch(e=>tell(e.message,true));$('history').appendChild(button);
