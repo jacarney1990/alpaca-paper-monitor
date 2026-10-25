@@ -589,7 +589,7 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
                         import re
                         report = str(result.get("synthesis") or "")
                         claimed = []
-                        for match in re.finditer(r"(?<![\\d.])([0-9]{1,2}\\.[0-9]{1,2})\\s*%", report):
+                        for match in re.finditer(r"(?<![\d.])([0-9]{1,2}\.[0-9]{1,2})\s*%", report):
                             claimed.append(float(match.group(1)))
                         known_values = {round(value, 2) for _, value in points}
                         unmatched = sorted({v for v in claimed if round(v, 2) not in known_values})
