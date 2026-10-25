@@ -215,7 +215,7 @@
    (name==='settings'&&b.id==='nav-history')));
   document.body.classList.remove('nexus-sidebar-open');
   sync();
-  window.scrollTo({top:0,behavior:'instant'});
+  window.scrollTo(0,0);
  }
  function clearChat(){
   activeId=null;
