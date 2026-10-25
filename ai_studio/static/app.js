@@ -286,7 +286,10 @@ async function launch(demo=false){
  try{
   if(topic.length<3)throw Error('Tell your team what you would like to explore.');
   if(!providers.length)throw Error('Select at least one AI teammate.');
-  const request={topic,workflow:currentWorkflow,mode:$('mode').value,role:$('role').value,providers,demo,
+  const inferred=/\b(stock|stocks|ticker|portfolio|invest|trading|shares|crypto|etf|earnings|dividend)\b/i.test(topic)
+   ?'investment':/\b(build|project|app|website|software|deploy|architecture|roadmap|code)\b/i.test(topic)
+   ?'project':'research';
+  const request={topic,workflow:inferred,mode:$('mode').value,role:$('role').value,providers,demo,
    reply_to:activeId||null,attachments:importedFiles.map(({name,text})=>({name,text}))};
   const job=await api('/api/jobs',{method:'POST',body:JSON.stringify(request)});
   tell(demo?'Practice mission started. Documents were imported, but practice answers are simulated and do not analyze their contents.':'Live AI mission started with '+importedFiles.length+' imported file(s). Check progress below.');
