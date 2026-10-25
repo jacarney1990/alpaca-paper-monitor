@@ -10,6 +10,7 @@ const PUBLIC_ASSETS = [
   '/static/nexus-icon-512.png',
   '/static/offline.html',
   '/static/style.css',
+  '/static/chat-shell.css',
   '/static/install.js',
   '/static/demo.js'
 ];
