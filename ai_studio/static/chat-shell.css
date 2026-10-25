@@ -134,7 +134,7 @@ body.nexus-chat-app .content{max-width:none;width:100%;padding:0;min-width:0}
 }
 @media(max-width:810px){
  body.nexus-chat-app .layout{display:block}
- body.nexus-chat-app .sidebar{position:fixed;transform:translateX(-104%);transition:transform .19s ease;
+ body.nexus-chat-app .sidebar{display:flex!important;position:fixed;transform:translateX(-104%);transition:transform .19s ease;
   left:0;top:0;bottom:0;width:min(83vw,320px);height:100dvh;box-shadow:6px 0 40px rgba(0,0,0,.32)}
  body.nexus-sidebar-open .sidebar{transform:translateX(0)}
  .nexus-mobile-menu{display:block}
