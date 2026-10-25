@@ -586,6 +586,17 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
                             "maximum_value": max(v for _, v in points),
                             "note": "Computed reference values only; generated prose has not been automatically checked against them.",
                         }
+                        import re
+                        report = str(result.get("synthesis") or "")
+                        claimed = []
+                        for match in re.finditer(r"(?<![\\d.])([0-9]{1,2}\\.[0-9]{1,2})\\s*%", report):
+                            claimed.append(float(match.group(1)))
+                        known_values = {round(value, 2) for _, value in points}
+                        unmatched = sorted({v for v in claimed if round(v, 2) not in known_values})
+                        result["numeric_checks"]["reported_rates_not_in_source"] = unmatched[:20]
+                        result["numeric_checks"]["rate_claims_checked"] = len(claimed)
+                        result["numeric_checks"]["validation_scope"] = "Literal percentage rates only; no date-value matching, derived changes or semantic claim checking."
+                        result["numeric_checks"]["status"] = "review_needed" if unmatched else "limited_pass" if claimed else "no_rate_claims"
                 except SourceError:
                     pass
             result["verification"] = {
