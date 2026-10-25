@@ -111,3 +111,38 @@ before launching.
   modify settings. Brokerage execution remains disabled.
 - Required Python packages are in the repository root requirements.txt.
 
+
+## Conversation-first Nexus interface (October 25, 2026)
+
+Nexus's private app now opens into a chat-first experience. Its main input accepts
+ordinary questions and follow-ups; Enter sends and Shift+Enter inserts a new
+line. The paper/order execution restriction is unchanged.
+
+- **New conversation** clears the current draft and file selections.
+- **Recent conversations** groups linked turns by the first question. Selecting
+  a conversation opens its most recent turn and up to seven preceding turns.
+- A follow-up sends the current question plus up to three preceding questions
+  and short AI answers to selected providers as explicitly labeled untrusted
+  reference context. A simulated response is labeled as simulated. This uses
+  the same protected live-AI quota as a new mission.
+- **+ Add files** invokes the existing private, bounded document importer.
+  Attachments can be removed from the message composer before sending.
+- **AI team** expands advanced model selection, role, collaboration mode,
+  free practice and quota notices. The default picks available Gemini and
+  Groq keys for a two-model collaboration; users can choose any configured keys.
+- Sources, investing workflow status, health and settings are now navigable
+  as secondary tools. Source findings can be sent back to the composer.
+- On mobile, the app provides a drawer for prior conversations, bottom tool
+  navigation, and a responsive message composer.
+- Disconnecting erases the browser's in-memory access token and clears
+  private DOM views. Tokens, chat history and imported document text are
+  never written into browser local storage. Existing Render SQLite mission
+  records remain ephemeral until durable storage is implemented.
+- The message viewer uses the local, safe Markdown renderer. Generated
+  text is inserted as text nodes, never executed as HTML.
+
+This is **not** full real-time token streaming, multi-user authentication,
+persistent cloud chat history, voice chat, or unrestricted AI browsing.
+The app still runs bounded asynchronous in-process jobs on free Render.
+Official SEC/FDA/FRED sources remain read-only and source outputs must
+be checked for freshness. Live AI calls can incur provider charges.
