@@ -355,12 +355,13 @@ def generate_image():
     if style not in styles:
         return jsonify({"error": "Unknown style."}), 400
     with _LOCK, connection() as db:
-        budget = limits()
-        if budget["remaining"] < 1:
-            return jsonify({"error": "Daily AI-call budget exhausted."}), 403
-        day = datetime.now(timezone.utc).date().isoformat()
-        db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,1) "
-                   "ON CONFLICT(day) DO UPDATE SET reserved=reserved+1", (day,))
+        if provider != "AI Horde":
+            budget = limits()
+            if budget["remaining"] < 1:
+                return jsonify({"error": "Daily paid API-call budget exhausted."}), 403
+            day = datetime.now(timezone.utc).date().isoformat()
+            db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,1) "
+                       "ON CONFLICT(day) DO UPDATE SET reserved=reserved+1", (day,))
     try:
         if provider == "AI Horde":
             response = requests.post("https://aihorde.net/api/v2/generate/async",
@@ -619,13 +620,14 @@ def create_job():
         if count >= 2:
             return jsonify({"error": "Two missions are already running. Try again when one finishes."}), 429
         if not demo:
-            budget = limits()
-            if budget["daily_limit"] == 0 or budget["remaining"] < required:
-                return jsonify({"error": "Live mission blocked by the daily AI-call safety limit. "
-                                          "Use FREE Practice, or explicitly configure and approve a budget."}), 403
-            db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,?) "
-                       "ON CONFLICT(day) DO UPDATE SET reserved=reserved+excluded.reserved",
-                       (day, required))
+            free_only = all(p in ("Ollama Local", "OpenRouter Free") for p in selected)
+            if not free_only:
+                budget = limits()
+                if budget["daily_limit"] == 0 or budget["remaining"] < required:
+                    return jsonify({"error": "Paid-provider mission blocked by the daily API-call safety budget. Select free-only teammates or explicitly configure a paid budget."}), 403
+                db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,?) "
+                           "ON CONFLICT(day) DO UPDATE SET reserved=reserved+excluded.reserved",
+                           (day, required))
         job_id = str(uuid.uuid4())
         db.execute("INSERT INTO jobs(id,created,topic,workflow,mode,role,providers,status,output,parent_id) "
                    "VALUES(?,?,?,?,?,?,?,?,?,?)",
