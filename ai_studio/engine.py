@@ -148,6 +148,35 @@ def run_task(topic, mode, specialization, providers, workflow):
                     "answer": invoke(name, policy+" "+focus+" "+ROLES[specialization], topic)}
         except ProviderError as exc:
             return {"provider": name, "status": "failed", "error": str(exc)}
+    if mode == "team" and len(selected) == 1:
+        name = selected[0]
+        stages = [
+            ("Collector", "Collect evidence provided in the prompt. Identify missing documents and source gaps. Do not claim to have browsed or verified external sources."),
+            ("Analyst", "Analyze the Collector's evidence. Separate supported findings from assumptions, quantify only when numbers are supplied."),
+            ("Validator", "Challenge the Analyst's claims against the Collector's evidence. Flag unsupported statements, contradictions and missing sources."),
+        ]
+        outputs = []
+        context = topic
+        for role, instruction in stages:
+            try:
+                answer = invoke(name, policy + " Role: " + role + ". " + instruction, context[:15000])
+                outputs.append({"provider": name, "role": role, "status": "complete", "answer": answer})
+                context = ("Original task:\n" + topic + "\n\n" +
+                           "\n\n".join(x["role"] + ":\n" + x["answer"][:3500] for x in outputs))
+            except ProviderError as exc:
+                outputs.append({"provider": name, "role": role, "status": "failed", "error": str(exc)})
+                break
+        synthesis = ""
+        if len(outputs) == 3 and all(x["status"] == "complete" for x in outputs):
+            try:
+                synthesis = invoke(name, policy + " Write a final research report with evidence limitations, disagreements, and next steps.", context[:15000])
+            except ProviderError:
+                synthesis = "Final report generation unavailable. Review the three recorded agent outputs."
+        complete = len(outputs) == 3 and all(x["status"] == "complete" for x in outputs) and bool(synthesis) and not synthesis.startswith("Final report generation unavailable")
+        return {"initial": outputs, "cross_review": [outputs[2]] if len(outputs) == 3 else [],
+                "synthesis": synthesis, "mode": mode, "completed": sum(x["status"] == "complete" for x in outputs),
+                "requested": 3, "trade_execution": "DISABLED",
+                "team_status": "COMPLETE" if complete else "PARTIAL" if outputs else "FAILED"}
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(selected)) as pool:
         first = list(pool.map(one, selected))
     completed = [x for x in first if x["status"] == "complete"]
