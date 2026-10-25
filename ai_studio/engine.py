@@ -172,11 +172,13 @@ def run_task(topic, mode, specialization, providers, workflow):
                 synthesis = invoke(name, policy + " Write a final research report with evidence limitations, disagreements, and next steps.", context[:15000])
             except ProviderError:
                 synthesis = "Final report generation unavailable. Review the three recorded agent outputs."
-        complete = len(outputs) == 3 and all(x["status"] == "complete" for x in outputs) and bool(synthesis) and not synthesis.startswith("Final report generation unavailable")
-        return {"initial": outputs, "cross_review": [outputs[2]] if len(outputs) == 3 else [],
-                "synthesis": synthesis, "mode": mode, "completed": sum(x["status"] == "complete" for x in outputs),
+        completed_count = sum(x["status"] == "complete" for x in outputs)
+        complete = completed_count == 3 and bool(synthesis) and not synthesis.startswith("Final report generation unavailable")
+        outcome = "COMPLETE" if complete else "PARTIAL" if completed_count else "FAILED"
+        return {"initial": outputs, "cross_review": [],
+                "synthesis": synthesis, "mode": mode, "completed": completed_count,
                 "requested": 3, "trade_execution": "DISABLED",
-                "team_status": "COMPLETE" if complete else "PARTIAL" if outputs else "FAILED"}
+                "team_status": outcome, "agent_roles": ["Collector", "Analyst", "Validator"]}
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(selected)) as pool:
         first = list(pool.map(one, selected))
     completed = [x for x in first if x["status"] == "complete"]
