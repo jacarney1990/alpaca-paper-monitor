@@ -9,6 +9,7 @@
   if(label!==undefined)e.textContent=label;
   return e;
  };
+ try {
  const main=document.querySelector('main.content');
  window.addEventListener('error',event=>{const el=document.getElementById('nexus-init-error')||document.createElement('div');el.id='nexus-init-error';el.style.cssText='position:fixed;bottom:70px;left:10px;right:10px;z-index:9999;background:#742b34;color:white;padding:12px;border-radius:8px;font-size:12px';el.textContent='Nexus interface error: '+event.message+' ('+(event.filename||'').split('/').pop()+':'+event.lineno+')';document.body.appendChild(el);});
  const side=document.querySelector('.sidebar');
@@ -294,4 +295,8 @@
  // The user can still open every original tool, but the first screen is a clean chat.
  window.NexusShell={show,present,clearChat,onJobShown,onHistory,sync};
  sync();
+ } catch (error) {
+  const panel=document.createElement('div');panel.id='nexus-init-failure';panel.setAttribute('role','alert');panel.style.cssText='position:fixed;inset:auto 12px 75px;z-index:99999;padding:16px;background:#6b182b;color:white;border-radius:12px;overflow-wrap:anywhere';panel.textContent='Nexus initialization failed: '+String(error&&error.stack||error);document.body.appendChild(panel);
+  console.error('Nexus chat shell failed',error);
+ }
 })();
