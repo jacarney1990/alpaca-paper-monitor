@@ -97,6 +97,14 @@
         <div class="section-head"><div><div class="eyebrow">YOUR MISSION</div><h3>Tell your team what to do</h3></div><span id="workflow-tag" class="status-pill neutral">Research</span></div>
         <label class="field-label" for="topic">What would you like to explore?</label>
         <textarea id="topic" maxlength="5000" placeholder="For example: Compare three clean-energy technologies and explain the biggest risks and opportunities…" rows="4"></textarea>
+        <div class="file-import">
+          <label class="field-label" for="file-input">Import documents from your phone</label>
+          <p class="file-help">Choose up to 3 files (5 MB each): PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), TXT, MD, CSV or JSON.</p>
+          <input id="file-input" type="file" multiple accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.json" aria-describedby="file-privacy file-status">
+          <div id="file-status" class="file-help" role="status" aria-live="polite">No documents imported.</div>
+          <div id="file-list" class="file-list" aria-label="Imported documents"></div>
+          <p id="file-privacy" class="file-help">Files are processed temporarily. Only extracted text is included when you run a mission. Live AI sends it to selected providers; their responses can remain in temporary mission history. Password-protected and scanned/image-only files aren't supported. Long documents are shortened to fit context limits.</p>
+        </div>
         <div class="form-pair">
           <div><label class="field-label" for="mode">How should they work?</label><select id="mode"><option value="team">Collaborate and cross-check</option><option value="independent">Give independent answers</option></select></div>
           <div><label class="field-label" for="role">Primary perspective</label><select id="role"><option>Researcher</option><option>Skeptic</option><option>Engineer</option><option>Risk Auditor</option><option>Synthesizer</option></select></div>
