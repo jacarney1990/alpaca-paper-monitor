@@ -327,6 +327,54 @@ def extract_uploaded_file():
         return jsonify({"error": str(exc)}), 422
 
 
+@app.post("/api/images/generate")
+def generate_image():
+    """Generate an image with official provider moderation and existing usage limits."""
+    reject = secured()
+    if reject is not None:
+        return reject
+    if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true":
+        return jsonify({"error": "Live AI usage is disabled in Studio settings."}), 403
+    key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not key:
+        return jsonify({"error": "OpenAI image generation is not configured."}), 422
+    body = request.get_json(silent=True) or {}
+    prompt = body.get("prompt")
+    if not isinstance(prompt, str) or not 3 <= len(prompt.strip()) <= 2000:
+        return jsonify({"error": "Describe the image in 3–2,000 characters."}), 400
+    style = body.get("style", "Automatic")
+    styles = {"Automatic": "", "Photorealistic": "Photorealistic, natural lighting. ",
+              "Anime": "Anime illustration. ", "Fantasy": "Detailed fantasy artwork. ",
+              "Dark art": "Atmospheric dark art, cinematic composition. ",
+              "Illustration": "Professional digital illustration. "}
+    if style not in styles:
+        return jsonify({"error": "Unknown style."}), 400
+    with _LOCK, connection() as db:
+        budget = limits()
+        if budget["remaining"] < 1:
+            return jsonify({"error": "Daily AI-call budget exhausted."}), 403
+        day = datetime.now(timezone.utc).date().isoformat()
+        db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,1) "
+                   "ON CONFLICT(day) DO UPDATE SET reserved=reserved+1", (day,))
+    try:
+        response = requests.post("https://api.openai.com/v1/images/generations", timeout=115,
+            headers={"Authorization": "Bearer " + key},
+            json={"model": "gpt-image-1-mini", "prompt": styles[style] + prompt.strip(),
+                  "size": "1024x1024", "n": 1})
+        if not response.ok:
+            message = ("The image provider rejected this request under its content policy."
+                       if response.status_code == 400 else
+                       "Image provider unavailable (HTTP " + str(response.status_code) + ").")
+            return jsonify({"error": message}), 502
+        data = response.json().get("data", [])
+        encoded = data[0].get("b64_json", "") if data else ""
+        if not encoded:
+            return jsonify({"error": "The provider returned no image."}), 502
+        return jsonify({"image_base64": encoded, "mime": "image/png", "model": "gpt-image-1-mini"})
+    except (requests.RequestException, ValueError, TypeError, KeyError):
+        return jsonify({"error": "Image generation failed or timed out."}), 502
+
+
 @app.post("/api/images/analyze")
 def analyze_image():
     """Analyze one bounded image using the configured Gemini vision-capable model."""
