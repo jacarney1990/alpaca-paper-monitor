@@ -1,6 +1,7 @@
 """AI Studio API. Isolated from the existing paper-trading dashboard."""
 import hmac
 import base64
+from urllib.parse import quote
 import requests
 import json
 from io import BytesIO
@@ -335,10 +336,14 @@ def generate_image():
         return reject
     if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true":
         return jsonify({"error": "Live AI usage is disabled in Studio settings."}), 403
-    key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not key:
-        return jsonify({"error": "OpenAI image generation is not configured."}), 422
     body = request.get_json(silent=True) or {}
+    provider = body.get("provider", "Pollinations")
+    if provider not in ("Pollinations", "OpenAI"):
+        return jsonify({"error": "Choose a supported image provider."}), 400
+    env_name = "POLLINATIONS_API_KEY" if provider == "Pollinations" else "OPENAI_API_KEY"
+    key = os.getenv(env_name, "").strip()
+    if not key:
+        return jsonify({"error": provider + " is not connected. Configure " + env_name + " securely in Render."}), 422
     prompt = body.get("prompt")
     if not isinstance(prompt, str) or not 3 <= len(prompt.strip()) <= 2000:
         return jsonify({"error": "Describe the image in 3–2,000 characters."}), 400
@@ -357,6 +362,25 @@ def generate_image():
         db.execute("INSERT INTO call_reservations(day,reserved) VALUES(?,1) "
                    "ON CONFLICT(day) DO UPDATE SET reserved=reserved+1", (day,))
     try:
+        if provider == "Pollinations":
+            image_model = os.getenv("POLLINATIONS_IMAGE_MODEL", "flux").strip() or "flux"
+            if image_model not in ("flux", "zimage", "klein"):
+                return jsonify({"error": "Unsupported Pollinations model configuration."}), 422
+            response = requests.get(
+                "https://gen.pollinations.ai/image/" + quote(styles[style] + prompt.strip(), safe=""),
+                headers={"Authorization": "Bearer " + key},
+                params={"model": image_model, "width": 1024, "height": 1024}, timeout=115)
+            if not response.ok:
+                message = ("Pollinations balance or usage limit reached." if response.status_code in (402, 429)
+                           else "Pollinations request failed (HTTP " + str(response.status_code) + ").")
+                return jsonify({"error": message}), 502
+            if len(response.content) > 8 * 1024 * 1024:
+                return jsonify({"error": "Generated image exceeds size limit."}), 502
+            content_type = response.headers.get("content-type", "").split(";")[0].lower()
+            if content_type not in ("image/jpeg", "image/png", "image/webp"):
+                return jsonify({"error": "Image provider returned an unexpected format."}), 502
+            return jsonify({"image_base64": base64.b64encode(response.content).decode("ascii"),
+                            "mime": content_type, "model": image_model, "provider": "Pollinations"})
         response = requests.post("https://api.openai.com/v1/images/generations", timeout=115,
             headers={"Authorization": "Bearer " + key},
             json={"model": "gpt-image-1-mini", "prompt": styles[style] + prompt.strip(),
