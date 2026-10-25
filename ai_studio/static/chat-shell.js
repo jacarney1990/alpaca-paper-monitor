@@ -193,7 +193,7 @@
  const imported=$('file-list');
  const filesPreview=$('nexus-attached-preview')||mk('div','nexus-attached-preview');
  filesPreview.id='nexus-attached-preview';
- composer.insertBefore(filesPreview,question);
+ if(filesPreview.parentElement!==composer)composer.insertBefore(filesPreview,question);
  composer.append(submitRow,help,options);
  // Keep original launch/practice actions so the existing security and usage controls apply.
  if(actions)options.appendChild(actions);
