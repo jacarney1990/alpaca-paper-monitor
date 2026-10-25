@@ -603,7 +603,7 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
                             for date_match in re.finditer(r"20[0-9]{2}[-/](?:0[1-9]|1[0-2])", line):
                                 month = date_match.group().replace("/", "-")
                                 tail = line[date_match.end():date_match.end() + 75]
-                                rate_match = re.search(r"(?<![0-9.])([0-9]{1,2}(?:[.][0-9]{1,2})?)\\s*%", tail)
+                                rate_match = re.search(r"(?<![0-9.])([0-9]{1,2}(?:[.][0-9]{1,2})?)\s*%", tail)
                                 if rate_match and month in source_dates:
                                     reported = float(rate_match.group(1))
                                     actual = source_dates[month]
