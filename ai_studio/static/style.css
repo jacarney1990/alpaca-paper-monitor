@@ -259,3 +259,15 @@
  .chat-run-summary{margin:12px 13px 0}
  .chat-thinking{padding:18px 13px}
 }
+
+/* Distinct right-side question bubble, left-side AI response. */
+.chat-user{justify-content:flex-end;align-items:flex-start;background:transparent}
+.chat-user .chat-avatar{order:2;background:#40516c}
+.chat-user .chat-message{flex:0 1 auto;max-width:min(84%,780px);background:#203551;
+ border:1px solid #3a5678;border-radius:17px 17px 5px 17px;padding:13px 17px}
+.chat-user .chat-message-head{margin-bottom:3px}
+.chat-user .answer-markdown{font-size:13px;line-height:1.65}
+@media(max-width:540px){
+ .chat-user .chat-message{max-width:calc(100% - 34px);padding:11px 13px}
+ .chat-user .chat-avatar{display:none}
+}
