@@ -334,10 +334,10 @@ def generate_image():
     reject = secured()
     if reject is not None:
         return reject
-    if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true":
-        return jsonify({"error": "Live AI usage is disabled in Studio settings."}), 403
     body = request.get_json(silent=True) or {}
-    provider = body.get("provider", "Pollinations")
+    provider = body.get("provider", "AI Horde")
+    if provider != "AI Horde" and os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true":
+        return jsonify({"error": "Paid image providers are disabled in Studio settings."}), 403
     if provider not in ("AI Horde", "Pollinations", "OpenAI"):
         return jsonify({"error": "Choose a supported image provider."}), 400
     env_name = "POLLINATIONS_API_KEY" if provider == "Pollinations" else "OPENAI_API_KEY"
@@ -582,8 +582,9 @@ def create_job():
         current = provider_status()
         if any(not current[p]["configured"] for p in selected):
             return jsonify({"error": "Selected provider key is not configured on the server."}), 422
-        if os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true":
-            return jsonify({"error": "Live AI calls are off. Try a FREE practice mission; no provider requests were sent."}), 403
+        if (os.getenv("STUDIO_ALLOW_API_USAGE", "false").lower() != "true"
+                and any(p not in ("Ollama Local", "OpenRouter Free") for p in selected)):
+            return jsonify({"error": "Paid API calls are disabled. Select free-only teammates or use practice mode."}), 403
     # An explicitly selected prior conversation provides bounded continuity.
     # Never reuse attached file bytes or interpret old AI answers as higher-priority instructions.
     conversation_context = ""
