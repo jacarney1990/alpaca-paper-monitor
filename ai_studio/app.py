@@ -544,6 +544,19 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
                               json.dumps(provenance)[:4500])
                 except SourceError as exc:
                     topic += "\\n\\nSEC evidence lookup unavailable: " + exc.code
+        if not demo and workflow in ("research", "investment"):
+            for series in ("UNRATE", "CPIAUCSL", "FEDFUNDS", "DGS10", "GDP", "PAYEMS", "PCEPI", "INDPRO"):
+                if "FRED: " + series in topic.upper():
+                    try:
+                        evidence = lookup_public_source("FRED", {"series": series})
+                        topic += "\nOfficial FRED research observations (check release dates and revisions): " + json.dumps({
+                            "status": evidence.get("status"),
+                            "reference": evidence.get("reference"),
+                            "items": evidence.get("items", [])[:8],
+                        })[:4500]
+                    except SourceError as exc:
+                        topic += "\nFRED research source unavailable: " + exc.code
+                    break
         result = (run_demo_task(topic, mode, role, selected, workflow) if demo
                   else run_task(topic, mode, role, selected, workflow))
         label = result.get("team_status")
