@@ -142,3 +142,14 @@
  .preview-top .brand small{font-size:8px}
  .preview-top .btn.small{font-size:10px;white-space:nowrap}
 }
+
+/* Mobile document picker for authenticated in-memory research imports. */
+.file-import{margin:18px 0 10px;padding:16px;border:1px dashed #537ca5;border-radius:13px;background:#112840}
+.file-import .field-label{margin:0 0 7px;color:#d7eaff}
+.file-help{font-size:11px;color:#b7cbe2;line-height:1.6;margin:7px 0}
+.file-import input[type=file]{width:100%;max-width:100%;margin:10px 0;padding:10px;border-radius:9px;border:1px solid #496483;background:#0d1e34;color:#e2eeff}
+.file-import input[type=file]::file-selector-button{background:#315b86;border:1px solid #588bb9;border-radius:8px;color:white;padding:9px 12px;margin-right:10px;cursor:pointer}
+.file-list{display:grid;gap:7px;margin-top:8px}
+.file-item{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid #355b7d;border-radius:10px;padding:9px 10px;background:#0b1b31}
+.file-item span{color:#d7ecff;font-size:12px;min-width:0;overflow-wrap:anywhere}
+.file-item .file-remove{border:1px solid #5d6c86;background:#26364e;color:#f4e4e4;border-radius:7px;padding:5px 9px;flex-shrink:0;font-size:11px}
