@@ -559,6 +559,14 @@ def worker(job_id, topic, mode, role, selected, workflow, demo=False):
                     break
         result = (run_demo_task(topic, mode, role, selected, workflow) if demo
                   else run_task(topic, mode, role, selected, workflow))
+        if workflow in ("research", "investment") and not demo:
+            from datetime import datetime, timezone
+            result["verification"] = {
+                "report_generated_at_utc": datetime.now(timezone.utc).isoformat(),
+                "independent_numeric_validation": "not_performed",
+                "source_verification": "source metadata only; full documents not verified",
+                "caution": "Agent completion does not imply factual or numerical verification.",
+            }
         label = result.get("team_status")
         outcome = ("complete" if label == "COMPLETE"
                    else "partial" if label == "PARTIAL"
