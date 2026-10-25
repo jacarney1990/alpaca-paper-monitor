@@ -186,6 +186,7 @@
    (name==='investing'&&b.id==='nav-investment')||(name==='system'&&b.id==='nav-project')||
    (name==='settings'&&b.id==='nav-history')));
   document.body.classList.remove('nexus-sidebar-open');
+  sync();
   main.scrollIntoView({behavior:'smooth',block:'start'});
  }
  function clearChat(){
