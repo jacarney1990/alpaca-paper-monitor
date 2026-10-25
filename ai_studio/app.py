@@ -80,7 +80,7 @@ def secure_headers(response):
 
 @app.get("/")
 def home():
-    return render_template("index.html")
+    return render_template("nexus_v2.html")
 
 
 # PUBLIC preview and source distribution. Neither route reads environment
