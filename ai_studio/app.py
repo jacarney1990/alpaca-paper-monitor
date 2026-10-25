@@ -99,7 +99,7 @@ STUDIO_SHARE_FILES = (
     "app.py", "engine.py", "finance_bridge.py", "public_sources.py",
     "file_import.py",
     "README.md", "templates/index.html", "templates/demo.html",
-    "static/app.js", "static/demo.js", "static/install.js",
+    "static/app.js", "static/answer-renderer.js", "static/demo.js", "static/install.js",
     "static/style.css", "static/offline.html", "static/nexus-icon.svg",
     "static/nexus-icon-192.png", "static/nexus-icon-512.png",
     "static/manifest.webmanifest", "static/demo-manifest.webmanifest",
