@@ -163,7 +163,7 @@
   actions.querySelectorAll('button').forEach(b=>b.classList.add('nexus-run-button'));
  }
  const imported=$('file-list');
- const filesPreview=mk('div','nexus-attached-preview');
+ const filesPreview=$('nexus-attached-preview')||mk('div','nexus-attached-preview');
  filesPreview.id='nexus-attached-preview';
  composer.insertBefore(filesPreview,question);
  composer.append(submitRow,help,options);
