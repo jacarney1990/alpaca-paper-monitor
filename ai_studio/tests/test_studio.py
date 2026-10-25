@@ -493,5 +493,38 @@ class StudioTests(unittest.TestCase):
         self.assertTrue(b["synthesis"])
         self.assertEqual(b["trade_execution"], "DISABLED")
 
+    def test_chat_style_renderer_is_loaded_and_safe(self):
+        home = self.client.get("/").get_data(as_text=True)
+        self.assertIn('src="/static/answer-renderer.js"', home)
+        self.assertLess(home.index('answer-renderer.js'), home.index('src="/static/app.js"'))
+        self.assertIn('id="output"', home)
+        self.assertIn("AI answers &amp; history", home)
+        script = self.client.get("/static/app.js").get_data(as_text=True)
+        renderer = self.client.get("/static/answer-renderer.js")
+        self.assertEqual(renderer.status_code, 200)
+        code = renderer.get_data(as_text=True)
+        self.assertIn("window.NexusMarkdown={render,copyText}", code)
+        self.assertNotIn(".innerHTML=", code)
+        self.assertNotIn("eval(", code)
+        self.assertIn("textContent", code)
+        self.assertIn("noopener noreferrer", code)
+        self.assertIn("chatTeamDetails(thread,out)", script)
+        self.assertIn("Copy answer", script)
+        self.assertIn("View AI team analysis", script)
+        self.assertIn("status==='running'", script)
+        self.assertIn("chatMessage(thread,{role:'user'", script)
+        self.assertIn("chatMessage(thread,{name:'Nexus'", script)
+
+    def test_safe_markdown_supports_code_and_tables_without_external_scripts(self):
+        renderer = self.client.get("/static/answer-renderer.js").get_data(as_text=True)
+        self.assertIn("answer-table-scroll", renderer)
+        self.assertIn("answer-code", renderer)
+        self.assertIn("tableDivider", renderer)
+        self.assertIn("copyText", renderer)
+        self.assertIn("isFence", renderer)
+        self.assertIn("doc.createTextNode", renderer)
+        self.assertNotIn("document.write(", renderer)
+        self.assertNotIn("dangerouslySetInnerHTML", renderer)
+
 if __name__ == "__main__":
     unittest.main()
