@@ -345,9 +345,9 @@ def analyze_image():
     if len(payload) > 4 * 1024 * 1024:
         return jsonify({"error": "Image must be under 4 MB."}), 413
     mime = None
-    if payload.startswith(b"\\xff\\xd8\\xff"):
+    if payload.startswith(b"\xff\xd8\xff"):
         mime = "image/jpeg"
-    elif payload.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+    elif payload.startswith(b"\x89PNG\r\n\x1a\n"):
         mime = "image/png"
     elif payload[:4] == b"RIFF" and payload[8:12] == b"WEBP":
         mime = "image/webp"
