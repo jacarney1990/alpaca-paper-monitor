@@ -142,7 +142,7 @@ def mission_context(items):
         if not isinstance(item, dict):
             raise FileImportError("Invalid file attachment.")
         name = safe_name(item.get("name"))
-        if Path(name).suffix.lower() not in SUPPORTED:
+        if Path(name).suffix.lower() not in (SUPPORTED | {'.jpg', '.jpeg', '.png', '.webp'}):
             raise FileImportError("Unsupported attached file type.")
         body = item.get("text")
         if not isinstance(body, str) or not body.strip() or len(body) > MAX_TEXT_CHARS:
