@@ -70,9 +70,11 @@
  chatPane.appendChild(welcome);
 
  const login=mk('div','nexus-chat-login');login.id='nexus-chat-login';
- login.appendChild($('settings'));chatPane.appendChild(login);
+ login.appendChild($('settings'));chatPane.prepend(login);
  chatPane.appendChild($('history-panel'));
  const composerHolder=mk('div','nexus-composer-holder');
+ // Status messages must remain visible after the sign-in panel collapses.
+ composerHolder.appendChild($('feedback'));
  composerHolder.appendChild($('mission'));
  chatPane.appendChild(composerHolder);
  body.appendChild(chatPane);
@@ -90,6 +92,18 @@
  const legacyFooter=main.querySelector('.footer');if(legacyFooter)settings.appendChild(legacyFooter);
  const authBack=mk('div','nexus-settings-auth');
  settings.prepend(authBack);
+ const logout=mk('button','nexus-logout','Disconnect workspace');
+ logout.type='button';logout.addEventListener('click',()=>{
+  token='';activeId=null;clearTimeout(timer);
+  $('access-state').textContent='● Not connected';
+  $('access-caption').textContent='Enter your private access code to use your AI team.';
+  $('history').replaceChildren();$('output').replaceChildren();
+  $('launch').disabled=true;importedFiles.splice(0);drawImportedFiles();
+  $('topic').value='';
+  login.appendChild($('settings'));
+  show('chat');sync();
+ });
+ authBack.append(mk('p','','Your private access code remains in this page memory while connected.'),logout);
  toolsPane.append(sources,investing,system,settings);
  body.appendChild(toolsPane);
  main.appendChild(body);
@@ -162,6 +176,8 @@
  function show(view){
   const name=viewNames[view] ? view:'chat';
   currentView=name;
+  if(name==='settings')authBack.appendChild($('settings'));
+  else if($('settings').parentElement===authBack)login.appendChild($('settings'));
   chatPane.hidden=name!=='chat';
   toolsPane.hidden=name==='chat';
   for(const [key,element]of Object.entries(viewMap))element.hidden=name!==key;
@@ -195,8 +211,7 @@
   state.textContent=connected?'● Workspace connected':'● Sign in required';
   send.disabled=!connected||$('launch').disabled;
   send.title=connected? 'Send to your AI team':'Connect your workspace first';
-  if(!connected&&currentView==='chat')login.hidden=false;
-  if(connected)login.hidden=true;
+  login.hidden=connected||currentView!=='chat';
   models.textContent=($('workflow-tag')?.textContent||'Research')+' · '+($('mode').value==='team'?'AI team':'Independent');
  }
  function present(tool){
@@ -212,7 +227,10 @@
  $('nav-investment').onclick=()=>present('investing');
  $('nav-project').onclick=()=>{show('chat');chooseWorkflow('project');};
  $('nav-sources').onclick=()=>present('sources');
- $('nav-history').onclick=()=>present('settings');
+ const systemNav=mk('button','nav','◈ System health');
+ systemNav.type='button';systemNav.id='nexus-nav-system';
+ systemNav.onclick=()=>present('system');nav.appendChild(systemNav);
+ $('nav-history').onclick=()=>{show('chat');document.body.classList.toggle('nexus-sidebar-open');};
  adv.onclick=()=>{
   options.hidden=!options.hidden;adv.setAttribute('aria-expanded',String(!options.hidden));
   adv.textContent=options.hidden?'⚙ AI team':'⌃ Close options';
