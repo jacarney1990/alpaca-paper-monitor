@@ -42,20 +42,21 @@ async function connect(){
   tell(e.message,true);
  }finally{$('connect').disabled=false;}
 }
-function providerCard(name,config){
+function providerCard(name,config,previous){
  const el=document.createElement('div');el.className='provider';
  const label=document.createElement('label');
- const input=document.createElement('input');input.type='checkbox';input.value=name;input.checked=Boolean(config.configured)&&name!=='OpenAI';label.append(input,document.createTextNode(name));
+ const input=document.createElement('input');input.type='checkbox';input.value=name;input.checked=Boolean(config.configured)&&(previous===undefined?['Gemini','Groq'].includes(name):previous);label.append(input,document.createTextNode(name));
  const key=document.createElement('small');key.className=config.configured?'saved':'missing';
  key.textContent=config.configured?'✓ API key saved':'○ Key missing (practice still works)';
  const model=document.createElement('small');model.textContent=config.model||'Model not specified';
  el.append(label,key,model);return el;
 }
 async function loadProviders(){
+ const previous=new Map([...document.querySelectorAll('#providers input[type=checkbox]')].map(input=>[input.value,input.checked]));
  const data=await api('/api/providers');statusCache=data;
  $('providers').replaceChildren();
  const entries=Object.entries(data.providers),count=entries.filter(([name,cfg])=>cfg.configured).length;
- for(const [name,config] of entries)$('providers').appendChild(providerCard(name,config));
+ for(const [name,config] of entries)$('providers').appendChild(providerCard(name,config,previous.get(name)));
  $('count').textContent=count+'/'+entries.length;$('health-keys').textContent=count+' of '+entries.length+' keys saved';
  $('missing-keys').replaceChildren();
  const missing=entries.filter(([name,cfg])=>!cfg.configured);
