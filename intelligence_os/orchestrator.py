@@ -10,7 +10,7 @@ async def execute_research(question: str, provider: ProviderAdapter, *,
     outputs: list[AgentOutput] = []
     warnings: list[str] = []
     for role in ROLES:
-        context = "\\n\\n".join(f"{item.role}: {item.text}" for item in outputs)
+        context = "\n\n".join(f"{item.role}: {item.text}" for item in outputs)
         instruction = {
             "Collector": "Gather evidence. Do not invent sources.",
             "Analyst": "Analyze the evidence and identify uncertainty.",
@@ -20,7 +20,7 @@ async def execute_research(question: str, provider: ProviderAdapter, *,
         try:
             response = await provider.complete(
                 system=f"You are the {role}. {instruction}",
-                prompt=f"Question: {question}\\nPrior team outputs:\\n{context[:12000]}",
+                prompt=f"Question: {question}\nPrior team outputs:\n{context[:12000]}",
                 policy=policy)
             if not response.strip():
                 raise ProviderError("Empty response")
