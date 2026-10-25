@@ -528,6 +528,22 @@ def job(job_id):
 
 def worker(job_id, topic, mode, role, selected, workflow, demo=False):
     try:
+        if not demo and workflow in ("research", "investment"):
+            import re
+            match = re.search(r"\\b(?:ticker|symbol)\\s*[:=]\\s*([A-Z]{1,5})\\b", topic)
+            if match:
+                ticker = match.group(1)
+                try:
+                    evidence = lookup_public_source("SEC", {"ticker": ticker})
+                    entries = evidence.get("items", [])[:5]
+                    provenance = [{"title": x.get("title"), "date": x.get("date"),
+                                   "url": x.get("url"), "authority": x.get("authority")}
+                                  for x in entries]
+                    topic += ("\\n\\nRead-only SEC source metadata (not verified filing contents; "
+                              "source status " + str(evidence.get("status")) + "):\\n" +
+                              json.dumps(provenance)[:4500])
+                except SourceError as exc:
+                    topic += "\\n\\nSEC evidence lookup unavailable: " + exc.code
         result = (run_demo_task(topic, mode, role, selected, workflow) if demo
                   else run_task(topic, mode, role, selected, workflow))
         label = result.get("team_status")
