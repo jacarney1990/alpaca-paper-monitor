@@ -311,7 +311,7 @@ def extract_uploaded_file():
     if uploaded is None:
         return jsonify({"error": "Select a document from your device."}), 400
     try:
-        # Files are processed only in memory; they are never written to a file store.
+        # No permanent file storage; Flask may spool large multipart uploads temporarily.
         payload = uploaded.stream.read(MAX_FILE_BYTES + 1)
         result = extract_file(uploaded.filename, payload)
         return jsonify(result)
