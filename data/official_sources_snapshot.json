@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-10-25T15:40:56.625485+00:00",
+  "updated_at": "2026-10-26T16:10:53.606558+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -272,6 +272,14 @@
         {
           "symbol": "VRT",
           "form": "8-K",
+          "date": "2026-10-26",
+          "accession": "0001628280-26-067127",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026067127/vrt-20261026.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
           "date": "2026-09-24",
           "accession": "0001628280-26-063311",
           "title": "VRT • Form 8-K",
@@ -324,14 +332,6 @@
           "accession": "0001628280-26-042641",
           "title": "VRT • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026042641/vrt-20260612.htm"
-        },
-        {
-          "symbol": "VRT",
-          "form": "8-K",
-          "date": "2026-06-03",
-          "accession": "0001628280-26-040031",
-          "title": "VRT • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026040031/vrt-20260603.htm"
         }
       ],
       "RKLB": [
