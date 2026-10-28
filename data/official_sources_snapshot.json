@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-10-27T15:53:59.083931+00:00",
+  "updated_at": "2026-10-28T15:58:47.336271+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -272,6 +272,14 @@
         {
           "symbol": "VRT",
           "form": "8-K",
+          "date": "2026-10-28",
+          "accession": "0001628280-26-067707",
+          "title": "VRT • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026067707/vrt-20261028.htm"
+        },
+        {
+          "symbol": "VRT",
+          "form": "8-K",
           "date": "2026-10-27",
           "accession": "0001628280-26-067393",
           "title": "VRT • Form 8-K",
@@ -324,14 +332,6 @@
           "accession": "0001628280-26-050323",
           "title": "VRT • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026050323/vrt-20260729.htm"
-        },
-        {
-          "symbol": "VRT",
-          "form": "8-K",
-          "date": "2026-06-18",
-          "accession": "0001628280-26-044317",
-          "title": "VRT • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026044317/vrt-20260617.htm"
         }
       ],
       "RKLB": [
@@ -908,10 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-10-14",
-          "value": "5.19"
-        },
-        {
           "date": "2026-10-15",
           "value": "5.10"
         },
@@ -937,6 +933,10 @@
         },
         {
           "date": "2026-10-23",
+          "value": "5.00"
+        },
+        {
+          "date": "2026-10-26",
           "value": "5.00"
         }
       ],
