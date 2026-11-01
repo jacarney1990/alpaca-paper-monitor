@@ -1,0 +1,40 @@
+name: Offline safety CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      - 'ci/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-safety-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PAPER_PILOT_MODE: shadow
+      PAPER_PILOT_APPROVED: 'false'
+      ALPACA_PAPER_API_KEY: ''
+      ALPACA_PAPER_API_SECRET: ''
+      OPENAI_API_KEY: ''
+      ANTHROPIC_API_KEY: ''
+      GEMINI_API_KEY: ''
+      GROQ_API_KEY: ''
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run offline safety and resilience tests
+        run: python -m unittest discover -s tests -v
