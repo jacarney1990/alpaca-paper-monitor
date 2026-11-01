@@ -94,7 +94,8 @@ class PublicSnapshotBranchTests(unittest.TestCase):
     def test_rejects_unsafe_and_malformed_snapshots_without_pushing(self):
         original = self.head(publisher.DATA_BRANCH)
         for bad in ({"read_only": False}, {"brokerage_orders": 1},
-                    {"model_inference_calls": 1}, {"schema": 2}):
+                    {"model_inference_calls": 1}, {"schema": 2},
+                    {"private_account_number": "never_publish"}):
             with self.subTest(bad=bad):
                 data = snapshot()
                 data.update(bad)
