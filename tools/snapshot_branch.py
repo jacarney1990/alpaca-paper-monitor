@@ -36,8 +36,13 @@ def _fetch(repo: Path) -> None:
 def _validate(raw: bytes) -> dict:
     """Fail closed before copying a snapshot into the public data branch."""
     data = json.loads(raw)
+    allowed_keys = {
+        "schema", "updated_at", "sec", "fred", "read_only",
+        "model_inference_calls", "brokerage_orders", "note",
+    }
     if (
         not isinstance(data, dict)
+        or bool(set(data) - allowed_keys)
         or data.get("schema") != 1
         or data.get("read_only") is not True
         or data.get("brokerage_orders") != 0
