@@ -8,6 +8,8 @@ on:
     paths:
       - 'official_sources_snapshot.py'
       - 'tests/test_official_snapshot.py'
+      - 'tests/test_snapshot_branch_publisher.py'
+      - 'tools/snapshot_branch.py'
       - '.github/workflows/official-data-refresh.yml'
   schedule:
     # One read-only publication per day. No model requests or orders.
@@ -46,22 +48,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Restore last public snapshot from data-only branch
+        run: python tools/snapshot_branch.py prepare
       - name: Fetch official SEC data and public FRED observations (no AI calls)
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python official_sources_snapshot.py
-      - name: Save read-only public snapshot to GitHub
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/official_sources_snapshot.json
-          if git diff --cached --quiet; then
-            echo "No official data changes"
-          else
-            git commit -m "Refresh official SEC and FRED public research snapshot [skip ci]"
-            git push
-          fi
+      - name: Publish validated public snapshot to data-only branch
+        run: python tools/snapshot_branch.py publish
       - name: Save official source audit artifact
         if: always()
         uses: actions/upload-artifact@v4
