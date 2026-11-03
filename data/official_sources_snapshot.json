@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-02T16:08:19.560271+00:00",
+  "updated_at": "2026-11-03T15:59:10.197189+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -403,6 +403,22 @@
       "CRSP": [
         {
           "symbol": "CRSP",
+          "form": "10-Q",
+          "date": "2026-11-02",
+          "accession": "0001193125-26-443665",
+          "title": "CRSP • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526443665/crsp-20260930.htm"
+        },
+        {
+          "symbol": "CRSP",
+          "form": "8-K",
+          "date": "2026-11-02",
+          "accession": "0001193125-26-443644",
+          "title": "CRSP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526443644/crsp-20261102.htm"
+        },
+        {
+          "symbol": "CRSP",
           "form": "8-K",
           "date": "2026-10-19",
           "accession": "0001193125-26-425243",
@@ -448,22 +464,6 @@
           "accession": "0001193125-26-204147",
           "title": "CRSP • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526204147/crsp-20260504.htm"
-        },
-        {
-          "symbol": "CRSP",
-          "form": "8-K",
-          "date": "2026-03-16",
-          "accession": "0001193125-26-108333",
-          "title": "CRSP • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526108333/crsp-20260316.htm"
-        },
-        {
-          "symbol": "CRSP",
-          "form": "8-K",
-          "date": "2026-03-11",
-          "accession": "0001193125-26-101073",
-          "title": "CRSP • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1674416/000119312526101073/crsp-20260310.htm"
         }
       ],
       "POET": [
@@ -840,10 +840,6 @@
       ],
       "FEDFUNDS": [
         {
-          "date": "2026-02-01",
-          "value": "3.64"
-        },
-        {
           "date": "2026-03-01",
           "value": "3.64"
         },
@@ -870,6 +866,10 @@
         {
           "date": "2026-09-01",
           "value": "3.75"
+        },
+        {
+          "date": "2026-10-01",
+          "value": "3.88"
         }
       ],
       "CPIAUCSL": [
@@ -908,10 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-10-20",
-          "value": "5.12"
-        },
-        {
           "date": "2026-10-21",
           "value": "5.13"
         },
@@ -938,6 +934,10 @@
         {
           "date": "2026-10-29",
           "value": "4.98"
+        },
+        {
+          "date": "2026-10-30",
+          "value": "4.94"
         }
       ],
       "GDP": [
