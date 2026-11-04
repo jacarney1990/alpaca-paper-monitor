@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-03T15:59:10.197189+00:00",
+  "updated_at": "2026-11-04T16:00:42.147346+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -535,6 +535,22 @@
       "SLDP": [
         {
           "symbol": "SLDP",
+          "form": "10-Q",
+          "date": "2026-11-04",
+          "accession": "0001104659-26-122310",
+          "title": "SLDP • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926122310/sldp-20260930x10q.htm"
+        },
+        {
+          "symbol": "SLDP",
+          "form": "8-K",
+          "date": "2026-11-03",
+          "accession": "0001104659-26-122107",
+          "title": "SLDP • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926122107/tm2628929d2_8k.htm"
+        },
+        {
+          "symbol": "SLDP",
           "form": "8-K",
           "date": "2026-09-14",
           "accession": "0001104659-26-107256",
@@ -580,22 +596,6 @@
           "accession": "0001104659-26-065141",
           "title": "SLDP • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926065141/tm2615247d1_8k.htm"
-        },
-        {
-          "symbol": "SLDP",
-          "form": "8-K",
-          "date": "2026-05-07",
-          "accession": "0001104659-26-056584",
-          "title": "SLDP • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926056584/tm2613507d2_8k.htm"
-        },
-        {
-          "symbol": "SLDP",
-          "form": "10-Q",
-          "date": "2026-05-06",
-          "accession": "0001104659-26-055840",
-          "title": "SLDP • Form 10-Q",
-          "url": "https://www.sec.gov/Archives/edgar/data/1844862/000110465926055840/sldp-20260331x10q.htm"
         }
       ],
       "TLRY": [
@@ -908,10 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-10-21",
-          "value": "5.13"
-        },
-        {
           "date": "2026-10-22",
           "value": "4.96"
         },
@@ -938,6 +934,10 @@
         {
           "date": "2026-10-30",
           "value": "4.94"
+        },
+        {
+          "date": "2026-11-02",
+          "value": "4.91"
         }
       ],
       "GDP": [
