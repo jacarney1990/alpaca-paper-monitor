@@ -1,10 +1,18 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-04T16:00:42.147346+00:00",
+  "updated_at": "2026-11-05T16:11:44.931222+00:00",
   "sec": {
     "status": "ok",
     "filings": {
       "NXE": [
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-11-05",
+          "accession": "0001062993-26-005762",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326005762/form6k.htm"
+        },
         {
           "symbol": "NXE",
           "form": "6-K",
@@ -60,14 +68,6 @@
           "accession": "0001062993-26-002831",
           "title": "NXE • Form 6-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326002831/form6k.htm"
-        },
-        {
-          "symbol": "NXE",
-          "form": "6-K",
-          "date": "2026-05-20",
-          "accession": "0001062993-26-002807",
-          "title": "NXE • Form 6-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326002807/form6k.htm"
         }
       ],
       "IONQ": [
@@ -1079,7 +1079,8 @@
     },
     "failed": [],
     "method": "Public FRED graph CSV",
-    "stale": false
+    "stale": true,
+    "latest_refresh_status": "source_unavailable"
   },
   "read_only": true,
   "model_inference_calls": 0,
