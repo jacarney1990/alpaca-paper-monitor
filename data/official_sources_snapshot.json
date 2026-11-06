@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-05T16:11:44.931222+00:00",
+  "updated_at": "2026-11-06T15:56:53.516937+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -73,6 +73,22 @@
       "IONQ": [
         {
           "symbol": "IONQ",
+          "form": "10-Q",
+          "date": "2026-11-05",
+          "accession": "0001193125-26-449829",
+          "title": "IONQ • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526449829/ionq-20260930.htm"
+        },
+        {
+          "symbol": "IONQ",
+          "form": "8-K",
+          "date": "2026-11-05",
+          "accession": "0001193125-26-449779",
+          "title": "IONQ • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526449779/ionq-20261103.htm"
+        },
+        {
+          "symbol": "IONQ",
           "form": "8-K",
           "date": "2026-10-16",
           "accession": "0001193125-26-424230",
@@ -118,25 +134,17 @@
           "accession": "0001193125-26-374694",
           "title": "IONQ • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526374694/ionq-20260824.htm"
-        },
-        {
-          "symbol": "IONQ",
-          "form": "10-Q",
-          "date": "2026-08-10",
-          "accession": "0001193125-26-341001",
-          "title": "IONQ • Form 10-Q",
-          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526341001/ionq-20260630.htm"
-        },
-        {
-          "symbol": "IONQ",
-          "form": "8-K",
-          "date": "2026-08-07",
-          "accession": "0001193125-26-338998",
-          "title": "IONQ • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526338998/ionq-20260807.htm"
         }
       ],
       "OKLO": [
+        {
+          "symbol": "OKLO",
+          "form": "10-Q",
+          "date": "2026-11-06",
+          "accession": "0001628280-26-071319",
+          "title": "OKLO • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000162828026071319/oklo-20260930.htm"
+        },
         {
           "symbol": "OKLO",
           "form": "424B5",
@@ -192,14 +200,6 @@
           "accession": "0001104659-26-060385",
           "title": "OKLO • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1849056/000110465926060385/tm2614461d1_8k.htm"
-        },
-        {
-          "symbol": "OKLO",
-          "form": "10-Q",
-          "date": "2026-05-12",
-          "accession": "0001628280-26-034095",
-          "title": "OKLO • Form 10-Q",
-          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000162828026034095/oklo-20260331.htm"
         }
       ],
       "ASTS": [
@@ -733,6 +733,22 @@
       "SERV": [
         {
           "symbol": "SERV",
+          "form": "10-Q",
+          "date": "2026-11-05",
+          "accession": "0001832483-26-000051",
+          "title": "SERV • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000183248326000051/serv-20260930.htm"
+        },
+        {
+          "symbol": "SERV",
+          "form": "8-K",
+          "date": "2026-11-05",
+          "accession": "0001832483-26-000048",
+          "title": "SERV • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000183248326000048/serv-20261105.htm"
+        },
+        {
+          "symbol": "SERV",
           "form": "8-K",
           "date": "2026-10-05",
           "accession": "0001832483-26-000040",
@@ -778,22 +794,6 @@
           "accession": "0001832483-26-000025",
           "title": "SERV • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1832483/000183248326000025/serv-20260617.htm"
-        },
-        {
-          "symbol": "SERV",
-          "form": "424B5",
-          "date": "2026-05-14",
-          "accession": "0001213900-26-056827",
-          "title": "SERV • Form 424B5",
-          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000121390026056827/ea0290442-424b5_serve.htm"
-        },
-        {
-          "symbol": "SERV",
-          "form": "S-3",
-          "date": "2026-05-11",
-          "accession": "0001213900-26-054207",
-          "title": "SERV • Form S-3",
-          "url": "https://www.sec.gov/Archives/edgar/data/1832483/000121390026054207/ea0289807-s3_serve.htm"
         }
       ]
     },
