@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-06T15:56:53.516937+00:00",
+  "updated_at": "2026-11-07T15:46:11.149193+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -206,6 +206,14 @@
         {
           "symbol": "ASTS",
           "form": "8-K",
+          "date": "2026-11-06",
+          "accession": "0001493152-26-050513",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226050513/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
           "date": "2026-10-20",
           "accession": "0001493152-26-047766",
           "title": "ASTS • Form 8-K",
@@ -258,14 +266,6 @@
           "accession": "0001493152-26-028544",
           "title": "ASTS • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226028544/form8-k.htm"
-        },
-        {
-          "symbol": "ASTS",
-          "form": "10-Q",
-          "date": "2026-05-11",
-          "accession": "0001193125-26-216950",
-          "title": "ASTS • Form 10-Q",
-          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526216950/asts-20260331.htm"
         }
       ],
       "VRT": [
@@ -668,6 +668,14 @@
         {
           "symbol": "IGC",
           "form": "10-Q",
+          "date": "2026-11-06",
+          "accession": "0001185185-26-005237",
+          "title": "IGC • Form 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526005237/igc10q093026.htm"
+        },
+        {
+          "symbol": "IGC",
+          "form": "10-Q",
           "date": "2026-08-14",
           "accession": "0001185185-26-003544",
           "title": "IGC • Form 10-Q",
@@ -720,14 +728,6 @@
           "accession": "0001185185-26-001146",
           "title": "IGC • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526001146/igc8k033026.htm"
-        },
-        {
-          "symbol": "IGC",
-          "form": "8-K",
-          "date": "2026-03-12",
-          "accession": "0001185185-26-000846",
-          "title": "IGC • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1326205/000118518526000846/igc8k031126.htm"
         }
       ],
       "SERV": [
@@ -806,10 +806,6 @@
     "series": {
       "UNRATE": [
         {
-          "date": "2026-02-01",
-          "value": "4.4"
-        },
-        {
           "date": "2026-03-01",
           "value": "4.3"
         },
@@ -836,6 +832,10 @@
         {
           "date": "2026-09-01",
           "value": "4.2"
+        },
+        {
+          "date": "2026-10-01",
+          "value": "4.1"
         }
       ],
       "FEDFUNDS": [
@@ -908,18 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-10-22",
-          "value": "4.96"
-        },
-        {
-          "date": "2026-10-23",
-          "value": "5.00"
-        },
-        {
-          "date": "2026-10-26",
-          "value": "5.00"
-        },
-        {
           "date": "2026-10-27",
           "value": "4.99"
         },
@@ -938,6 +926,18 @@
         {
           "date": "2026-11-02",
           "value": "4.91"
+        },
+        {
+          "date": "2026-11-03",
+          "value": "4.95"
+        },
+        {
+          "date": "2026-11-04",
+          "value": "4.90"
+        },
+        {
+          "date": "2026-11-05",
+          "value": "4.84"
         }
       ],
       "GDP": [
@@ -976,10 +976,6 @@
       ],
       "PAYEMS": [
         {
-          "date": "2026-02-01",
-          "value": "158436"
-        },
-        {
           "date": "2026-03-01",
           "value": "158650"
         },
@@ -1001,11 +997,15 @@
         },
         {
           "date": "2026-08-01",
-          "value": "159015"
+          "value": "159068"
         },
         {
           "date": "2026-09-01",
-          "value": "159044"
+          "value": "159128"
+        },
+        {
+          "date": "2026-10-01",
+          "value": "159293"
         }
       ],
       "PCEPI": [
@@ -1079,8 +1079,7 @@
     },
     "failed": [],
     "method": "Public FRED graph CSV",
-    "stale": true,
-    "latest_refresh_status": "source_unavailable"
+    "stale": false
   },
   "read_only": true,
   "model_inference_calls": 0,
