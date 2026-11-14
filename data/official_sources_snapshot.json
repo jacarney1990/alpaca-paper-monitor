@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-13T15:56:55.869728+00:00",
+  "updated_at": "2026-11-14T15:48:25.893826+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -73,6 +73,14 @@
       "IONQ": [
         {
           "symbol": "IONQ",
+          "form": "8-K",
+          "date": "2026-11-13",
+          "accession": "0001193125-26-461016",
+          "title": "IONQ • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526461016/ionq-20261110.htm"
+        },
+        {
+          "symbol": "IONQ",
           "form": "10-Q",
           "date": "2026-11-05",
           "accession": "0001193125-26-449829",
@@ -126,14 +134,6 @@
           "accession": "0001193125-26-384388",
           "title": "IONQ • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526384388/ionq-20260908.htm"
-        },
-        {
-          "symbol": "IONQ",
-          "form": "8-K",
-          "date": "2026-08-28",
-          "accession": "0001193125-26-374694",
-          "title": "IONQ • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1824920/000119312526374694/ionq-20260824.htm"
         }
       ],
       "OKLO": [
@@ -908,10 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-10-30",
-          "value": "4.94"
-        },
-        {
           "date": "2026-11-02",
           "value": "4.91"
         },
@@ -938,6 +934,10 @@
         {
           "date": "2026-11-10",
           "value": "4.98"
+        },
+        {
+          "date": "2026-11-12",
+          "value": "5.10"
         }
       ],
       "GDP": [
