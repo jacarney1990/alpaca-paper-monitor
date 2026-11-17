@@ -94,4 +94,71 @@ class PaperBridgeTests(unittest.TestCase):
         r,a=fixture();r['environment']='ALPACA_LIVE'
         self.assertIn('UNEXPECTED_V3_EXECUTION_ENVIRONMENT',b.evaluate(r,a,NOW,scheduled=True)['blocks'])
 
+
+class CompletionTriggerTests(unittest.TestCase):
+    def parent(self, **updates):
+        r = dict(id=42, event='schedule', head_branch='main',
+                 head_repository={'full_name':'owner/repo'},
+                 created_at='2026-10-19T23:58:55Z', status='completed', conclusion='success')
+        r.update(updates)
+        return r
+
+    def find(self, runs, **kwargs):
+        metadata = {'artifacts':[{'id':7,'name':'investment-v3-42','expired':False}]}
+        with patch.object(b.ops, 'github_json', side_effect=[{'workflow_runs':runs}, metadata]), \
+             patch.object(b.ops, 'download_artifact', return_value={'report':'parent'}) as download:
+            result = b.find_v3_report('owner/repo', 'token',
+                datetime(2026,10,20,0,2,tzinfo=timezone.utc), scheduled=True,
+                source_run_id=kwargs.get('source_run_id', '42'))
+            download.assert_called_once_with('owner/repo',7,'token')
+            return result
+
+    def test_parent_completion_across_midnight(self):
+        self.assertEqual(self.find([self.parent()]), ({'report':'parent'},42))
+
+    def test_failed_parent_not_hidden_by_older_success(self):
+        with self.assertRaisesRegex(b.PreflightError, 'LATEST_V3_NOT_SUCCESSFUL'):
+            self.find([self.parent(conclusion='failure'), self.parent(id=41,created_at='2026-10-19T22:00:00Z')])
+
+    def test_parent_not_completed(self):
+        with self.assertRaisesRegex(b.PreflightError, 'LATEST_V3_NOT_SUCCESSFUL'):
+            self.find([self.parent(status='in_progress')])
+
+    def test_newer_run_prevents_old_parent_fallback(self):
+        with self.assertRaisesRegex(b.PreflightError, 'V3_PARENT_SUPERSEDED'):
+            self.find([self.parent(),self.parent(id=43,created_at='2026-10-19T23:59:00Z',conclusion='failure')])
+
+    def test_newer_next_day_run_prevents_old_parent_fallback(self):
+        with self.assertRaisesRegex(b.PreflightError, 'V3_PARENT_SUPERSEDED'):
+            self.find([self.parent(), self.parent(id=43,
+                created_at='2026-10-20T00:01:00Z', conclusion='failure')])
+
+    def test_wrong_parent_origin_refused(self):
+        for update in ({'event':'workflow_dispatch'}, {'head_branch':'other'},
+                       {'head_repository':{'full_name':'fork/repo'}}):
+            with self.subTest(update=update), self.assertRaisesRegex(b.PreflightError,'UNEXPECTED_V3_PARENT_ORIGIN'):
+                self.find([self.parent(**update)])
+
+    def test_parent_not_in_expected_workflow_refused(self):
+        with self.assertRaisesRegex(b.PreflightError,'V3_PARENT_NOT_IN_WORKFLOW'):
+            self.find([self.parent(id=99)])
+
+    def test_invalid_parent_id_refused(self):
+        with self.assertRaisesRegex(b.PreflightError,'INVALID_V3_PARENT_RUN_ID'):
+            self.find([self.parent()],source_run_id='42/../99')
+
+    def test_stale_or_future_parent_refused(self):
+        for stamp in ('2026-10-18T23:00:00Z','2026-10-20T01:00:00Z'):
+            with self.subTest(stamp=stamp), self.assertRaisesRegex(b.PreflightError,'V3_PARENT_STALE_OR_FUTURE'):
+                self.find([self.parent(created_at=stamp)])
+
+    def test_workflow_uses_completion_not_a_clock_race(self):
+        from pathlib import Path
+        workflow = (Path(b.__file__).parent / '.github/workflows/investment-paper-bridge.yml').read_text()
+        self.assertIn('workflow_run:', workflow)
+        self.assertIn("workflows: ['Investment V3 (paper-aware, virtual trades only)']", workflow)
+        self.assertNotIn('cron:', workflow)
+        self.assertIn('V3_SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}',workflow)
+        self.assertNotIn('conclusion ==',workflow)  # failed parents remain visible
+
 if __name__=='__main__':unittest.main()

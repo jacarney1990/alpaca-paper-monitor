@@ -2,9 +2,12 @@ name: Investment V3.3 Paper Broker Readiness (NO orders)
 
 on:
   workflow_dispatch:
-  schedule:
-    # V3 runs at 22:23 UTC weekdays; this preflight reviews it later.
-    - cron: '11 23 * * 1-5'
+  # Run after V3 actually finishes, even when the scheduler is delayed.
+  # Failed parents also produce an explicit blocked readiness report.
+  workflow_run:
+    workflows: ['Investment V3 (paper-aware, virtual trades only)']
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -16,6 +19,10 @@ concurrency:
 
 jobs:
   paper-readiness:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'schedule' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -30,6 +37,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
+          V3_SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
           ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
         run: python paper_bridge.py
