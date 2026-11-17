@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-16T16:46:34.961883+00:00",
+  "updated_at": "2026-11-17T22:52:46.293091+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -139,6 +139,14 @@
       "OKLO": [
         {
           "symbol": "OKLO",
+          "form": "8-K",
+          "date": "2026-11-17",
+          "accession": "0001849056-26-000055",
+          "title": "OKLO • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000184905626000055/oklo-20261111.htm"
+        },
+        {
+          "symbol": "OKLO",
           "form": "10-Q",
           "date": "2026-11-06",
           "accession": "0001628280-26-071319",
@@ -192,17 +200,25 @@
           "accession": "0001104659-26-060387",
           "title": "OKLO • Form 424B5",
           "url": "https://www.sec.gov/Archives/edgar/data/1849056/000110465926060387/tm2614458-1_424b5.htm"
-        },
-        {
-          "symbol": "OKLO",
-          "form": "8-K",
-          "date": "2026-05-13",
-          "accession": "0001104659-26-060385",
-          "title": "OKLO • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1849056/000110465926060385/tm2614461d1_8k.htm"
         }
       ],
       "ASTS": [
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
+          "date": "2026-11-17",
+          "accession": "0001493152-26-052865",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226052865/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "424B5",
+          "date": "2026-11-17",
+          "accession": "0001493152-26-052716",
+          "title": "ASTS • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226052716/form424b5.htm"
+        },
         {
           "symbol": "ASTS",
           "form": "8-K",
@@ -250,22 +266,6 @@
           "accession": "0001493152-26-044647",
           "title": "ASTS • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226044647/form8-k.htm"
-        },
-        {
-          "symbol": "ASTS",
-          "form": "10-Q",
-          "date": "2026-08-10",
-          "accession": "0001193125-26-342550",
-          "title": "ASTS • Form 10-Q",
-          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526342550/asts-20260630.htm"
-        },
-        {
-          "symbol": "ASTS",
-          "form": "8-K",
-          "date": "2026-08-10",
-          "accession": "0001193125-26-342540",
-          "title": "ASTS • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000119312526342540/asts-20260810.htm"
         }
       ],
       "VRT": [
@@ -908,14 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-11-02",
-          "value": "4.91"
-        },
-        {
-          "date": "2026-11-03",
-          "value": "4.95"
-        },
-        {
           "date": "2026-11-04",
           "value": "4.90"
         },
@@ -938,6 +930,14 @@
         {
           "date": "2026-11-12",
           "value": "5.10"
+        },
+        {
+          "date": "2026-11-13",
+          "value": "5.15"
+        },
+        {
+          "date": "2026-11-16",
+          "value": "5.12"
         }
       ],
       "GDP": [
@@ -1044,10 +1044,6 @@
       ],
       "INDPRO": [
         {
-          "date": "2026-02-01",
-          "value": "101.9053"
-        },
-        {
           "date": "2026-03-01",
           "value": "101.7336"
         },
@@ -1057,23 +1053,27 @@
         },
         {
           "date": "2026-05-01",
-          "value": "102.7232"
+          "value": "102.6925"
         },
         {
           "date": "2026-06-01",
-          "value": "102.9610"
+          "value": "102.9673"
         },
         {
           "date": "2026-07-01",
-          "value": "103.2006"
+          "value": "103.1675"
         },
         {
           "date": "2026-08-01",
-          "value": "103.2664"
+          "value": "103.0954"
         },
         {
           "date": "2026-09-01",
-          "value": "103.9506"
+          "value": "103.8458"
+        },
+        {
+          "date": "2026-10-01",
+          "value": "103.3954"
         }
       ]
     },
