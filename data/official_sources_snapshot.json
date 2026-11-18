@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-17T22:52:46.293091+00:00",
+  "updated_at": "2026-11-18T22:36:00.993163+00:00",
   "sec": {
     "status": "ok",
     "filings": {
@@ -206,6 +206,22 @@
         {
           "symbol": "ASTS",
           "form": "8-K",
+          "date": "2026-11-18",
+          "accession": "0001493152-26-053080",
+          "title": "ASTS • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226053080/form8-k.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "424B5",
+          "date": "2026-11-18",
+          "accession": "0001493152-26-053004",
+          "title": "ASTS • Form 424B5",
+          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226053004/form424b5.htm"
+        },
+        {
+          "symbol": "ASTS",
+          "form": "8-K",
           "date": "2026-11-17",
           "accession": "0001493152-26-052865",
           "title": "ASTS • Form 8-K",
@@ -250,22 +266,6 @@
           "accession": "0001493152-26-050513",
           "title": "ASTS • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226050513/form8-k.htm"
-        },
-        {
-          "symbol": "ASTS",
-          "form": "8-K",
-          "date": "2026-10-20",
-          "accession": "0001493152-26-047766",
-          "title": "ASTS • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226047766/form8-k.htm"
-        },
-        {
-          "symbol": "ASTS",
-          "form": "8-K",
-          "date": "2026-09-28",
-          "accession": "0001493152-26-044647",
-          "title": "ASTS • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1780312/000149315226044647/form8-k.htm"
         }
       ],
       "VRT": [
@@ -601,6 +601,14 @@
       "TLRY": [
         {
           "symbol": "TLRY",
+          "form": "8-K",
+          "date": "2026-11-18",
+          "accession": "0001140361-26-044766",
+          "title": "TLRY • Form 8-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000114036126044766/ef20085957_8k.htm"
+        },
+        {
+          "symbol": "TLRY",
           "form": "10-Q",
           "date": "2026-10-08",
           "accession": "0001437749-26-032382",
@@ -654,14 +662,6 @@
           "accession": "0001140361-26-026966",
           "title": "TLRY • Form 8-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1731348/000114036126026966/ef20077071_8k.htm"
-        },
-        {
-          "symbol": "TLRY",
-          "form": "8-K",
-          "date": "2026-06-09",
-          "accession": "0001140361-26-024650",
-          "title": "TLRY • Form 8-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1731348/000114036126024650/ef20075844_form8k.htm"
         }
       ],
       "IGC": [
@@ -908,10 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-11-04",
-          "value": "4.90"
-        },
-        {
           "date": "2026-11-05",
           "value": "4.84"
         },
@@ -938,6 +934,10 @@
         {
           "date": "2026-11-16",
           "value": "5.12"
+        },
+        {
+          "date": "2026-11-17",
+          "value": "5.10"
         }
       ],
       "GDP": [
