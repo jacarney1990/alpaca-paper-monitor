@@ -1,10 +1,18 @@
 {
   "schema": 1,
-  "updated_at": "2026-11-24T02:12:23.582997+00:00",
+  "updated_at": "2026-11-24T23:54:01.381106+00:00",
   "sec": {
     "status": "ok",
     "filings": {
       "NXE": [
+        {
+          "symbol": "NXE",
+          "form": "6-K",
+          "date": "2026-11-24",
+          "accession": "0001062993-26-006241",
+          "title": "NXE • Form 6-K",
+          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326006241/form6k.htm"
+        },
         {
           "symbol": "NXE",
           "form": "6-K",
@@ -60,14 +68,6 @@
           "accession": "0001062993-26-003443",
           "title": "NXE • Form 6-K",
           "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326003443/form6k.htm"
-        },
-        {
-          "symbol": "NXE",
-          "form": "6-K",
-          "date": "2026-05-21",
-          "accession": "0001062993-26-002833",
-          "title": "NXE • Form 6-K",
-          "url": "https://www.sec.gov/Archives/edgar/data/1698535/000106299326002833/form6k.htm"
         }
       ],
       "IONQ": [
@@ -908,10 +908,6 @@
       ],
       "DGS10": [
         {
-          "date": "2026-11-10",
-          "value": "4.98"
-        },
-        {
           "date": "2026-11-12",
           "value": "5.10"
         },
@@ -937,6 +933,10 @@
         },
         {
           "date": "2026-11-20",
+          "value": "4.92"
+        },
+        {
+          "date": "2026-11-23",
           "value": "4.92"
         }
       ],
@@ -1045,35 +1045,35 @@
       "INDPRO": [
         {
           "date": "2026-03-01",
-          "value": "101.7336"
+          "value": "101.1593"
         },
         {
           "date": "2026-04-01",
-          "value": "102.5768"
+          "value": "101.6393"
         },
         {
           "date": "2026-05-01",
-          "value": "102.6925"
+          "value": "101.7781"
         },
         {
           "date": "2026-06-01",
-          "value": "102.9673"
+          "value": "101.9827"
         },
         {
           "date": "2026-07-01",
-          "value": "103.1675"
+          "value": "102.2082"
         },
         {
           "date": "2026-08-01",
-          "value": "103.0954"
+          "value": "102.0644"
         },
         {
           "date": "2026-09-01",
-          "value": "103.8458"
+          "value": "102.6785"
         },
         {
           "date": "2026-10-01",
-          "value": "103.3954"
+          "value": "102.2421"
         }
       ]
     },
