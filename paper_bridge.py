@@ -43,7 +43,7 @@ def elapsed_hours(when, now):
     return delta.total_seconds() / 3600
 
 
-def find_v3_report(repo, token, now, *, scheduled):
+def find_v3_report(repo, token, now, *, scheduled, source_run_id=None):
     """Require most recent completed run, not the last successful run.
 
     Never use yesterday's successful report to conceal a newer failed run.
@@ -53,8 +53,32 @@ def find_v3_report(repo, token, now, *, scheduled):
     runs = response.get('workflow_runs') if isinstance(response, dict) else None
     if not isinstance(runs, list) or not runs:
         raise PreflightError('NO_V3_RUNS')
+    if source_run_id is not None:
+        # Bind completion-triggered checks to the exact scheduled V3 parent.
+        # Never trust a caller-supplied ID to select a different workflow/artifact.
+        if not re.fullmatch(r'[1-9][0-9]*', str(source_run_id)):
+            raise PreflightError('INVALID_V3_PARENT_RUN_ID')
+        parents = [r for r in runs if str(r.get('id')) == str(source_run_id)]
+        if len(parents) != 1:
+            raise PreflightError('V3_PARENT_NOT_IN_WORKFLOW')
+        parent = parents[0]
+        if (parent.get('event') != 'schedule' or parent.get('head_branch') != 'main'
+                or (parent.get('head_repository') or {}).get('full_name') != repo):
+            raise PreflightError('UNEXPECTED_V3_PARENT_ORIGIN')
+        if not 0 <= elapsed_hours(parent.get('created_at'), now) <= 24:
+            raise PreflightError('V3_PARENT_STALE_OR_FUTURE')
+        if any(r.get('event') == 'schedule'
+               and isinstance(r.get('created_at'), str)
+               and checked_dt(r['created_at']) > checked_dt(parent['created_at'])
+               for r in runs):
+            raise PreflightError('V3_PARENT_SUPERSEDED')
+        # Completion may cross midnight; use the parent's date, not the child's.
+        scheduled = True
+        scheduled_date = checked_dt(parent['created_at']).date()
+    else:
+        scheduled_date = now.date()
     if scheduled:
-        today = now.date().isoformat()
+        today = scheduled_date.isoformat()
         candidates = [r for r in runs if r.get('event') == 'schedule'
                       and isinstance(r.get('created_at'), str)
                       and r['created_at'].startswith(today)]
@@ -66,6 +90,8 @@ def find_v3_report(repo, token, now, *, scheduled):
         if not candidates:
             raise PreflightError('NO_RECENT_V3_RUN')
     latest = max(candidates, key=lambda r: r['created_at'])
+    if source_run_id is not None and str(latest.get('id')) != str(source_run_id):
+        raise PreflightError('V3_PARENT_SUPERSEDED')
     if latest.get('status') != 'completed' or latest.get('conclusion') != 'success':
         raise PreflightError('LATEST_V3_NOT_SUCCESSFUL')
     if latest.get('head_branch') not in (None, 'main'):
@@ -223,9 +249,15 @@ def main():
         token = os.environ['GITHUB_TOKEN']
         if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',repo) or not token:
             raise PreflightError('MISSING_OR_MALFORMED_GITHUB_ENVIRONMENT')
-        report, run_id = find_v3_report(repo,token,now,scheduled=os.environ.get('GITHUB_EVENT_NAME')=='schedule')
+        event = os.environ.get('GITHUB_EVENT_NAME')
+        scheduled = event in ('schedule', 'workflow_run')
+        source_run_id = os.environ.get('V3_SOURCE_RUN_ID') if event == 'workflow_run' else None
+        if event == 'workflow_run' and not source_run_id:
+            raise PreflightError('INVALID_V3_PARENT_RUN_ID')
+        report, run_id = find_v3_report(repo, token, now, scheduled=scheduled,
+                                      source_run_id=source_run_id)
         broker = v3.paper_snapshot()  # GET only
-        output = evaluate(report, broker, now, scheduled=os.environ.get('GITHUB_EVENT_NAME')=='schedule')
+        output = evaluate(report, broker, now, scheduled=scheduled)
         output['source_v3_run_id'] = run_id
     except (PreflightError, ops.SupervisorError, ValueError, KeyError, TypeError,
             OSError, TimeoutError, RuntimeError) as exc:
@@ -244,7 +276,9 @@ def main():
     # Infrastructure failures should be evident in Actions rather than falsely green.
     if output['blocks'] and any(x in {'NO_V3_RUNS','SCHEDULED_V3_RUN_MISSING_TODAY',
                'NO_RECENT_V3_RUN','LATEST_V3_NOT_SUCCESSFUL',
-               'LATEST_V3_ARTIFACT_MISSING_OR_AMBIGUOUS'} for x in output['blocks']):
+               'LATEST_V3_ARTIFACT_MISSING_OR_AMBIGUOUS', 'INVALID_V3_PARENT_RUN_ID',
+               'V3_PARENT_NOT_IN_WORKFLOW', 'UNEXPECTED_V3_PARENT_ORIGIN',
+               'V3_PARENT_STALE_OR_FUTURE', 'V3_PARENT_SUPERSEDED'} for x in output['blocks']):
         raise PreflightError('V3_PARENT_WORKFLOW_UNAVAILABLE')
 
 
