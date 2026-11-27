@@ -40,7 +40,14 @@ class V41TeamTests(unittest.TestCase):
         payload = request.call_args.kwargs['payload']
         self.assertEqual(url, 'https://api.groq.com/openai/v1/chat/completions')
         self.assertEqual(payload['model'], 'qwen/qwen3.8-27b')
-        self.assertEqual(payload['response_format']['json_schema']['schema'], ai.SCHEMA)
+        schema = payload['response_format']['json_schema']['schema']
+        self.assertEqual(schema['required'], ai.SCHEMA['required'])
+        for field, limit in [('summary', 280), ('main_risk', 180)]:
+            self.assertEqual(schema['properties'][field]['maxLength'], limit)
+            valid = dict(opinion(), **{field: 'x' * limit})
+            self.assertEqual(ai.validate_review(valid, {SOURCE['id']}), valid)
+            with self.assertRaises(ai.ReviewValidationError):
+                ai.validate_review(dict(valid, **{field: 'x' * (limit + 1)}), {SOURCE['id']})
         self.assertEqual(payload['response_format']['json_schema']['strict'], True)
         self.assertEqual(request.call_args.kwargs['retries'], 0)
         self.assertNotIn('tool_choice', payload)
